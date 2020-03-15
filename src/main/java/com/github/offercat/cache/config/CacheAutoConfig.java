@@ -2,10 +2,7 @@ package com.github.offercat.cache.config;
 
 import com.github.offercat.cache.MultipleCache;
 import com.github.offercat.cache.MultipleCacheImpl;
-import com.github.offercat.cache.inte.ClusterCache;
-import com.github.offercat.cache.inte.DirectCache;
-import com.github.offercat.cache.inte.LocalCache;
-import com.github.offercat.cache.inte.Serializer;
+import com.github.offercat.cache.inte.*;
 import com.github.offercat.cache.ready.DefaultSerializer;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;

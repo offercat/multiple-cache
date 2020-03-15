@@ -1,7 +1,9 @@
 package com.github.offercat.cache.ready;
 
-import com.github.offercat.cache.config.CacheProperties;
+import com.github.offercat.cache.config.ItemProperties;
+import com.github.offercat.cache.extra.CacheObject;
 import com.github.offercat.cache.inte.DirectCache;
+import com.github.offercat.cache.inte.Serializer;
 
 import java.io.Serializable;
 import java.util.List;
@@ -16,8 +18,13 @@ import java.util.Map;
  */
 public class EhDirectCache extends DirectCache {
 
-    public EhDirectCache(String name, CacheProperties cacheProperties) {
-        super(name, cacheProperties);
+    public EhDirectCache(String name, Serializer serializer, ItemProperties itemProperties) {
+        super(name, serializer, itemProperties);
+    }
+
+    @Override
+    public boolean supportBroadcast() {
+        return true;
     }
 
     @Override
@@ -48,5 +55,25 @@ public class EhDirectCache extends DirectCache {
     @Override
     public void delMul(List<String> keys) {
 
+    }
+
+    @Override
+    public void setCacheObject(String key, CacheObject cacheObject) {
+
+    }
+
+    @Override
+    public void setMulCacheObject(Map<String, CacheObject> keyObjects) {
+
+    }
+
+    @Override
+    public CacheObject getCacheObject(String key) {
+        return null;
+    }
+
+    @Override
+    public Map<String, CacheObject> getMulCacheObject(List<String> keys) {
+        return null;
     }
 }

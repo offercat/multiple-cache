@@ -1,9 +1,10 @@
 package com.github.offercat.cache.action;
 
+import com.github.offercat.cache.extra.CacheObject;
+
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 缓存接口，通用缓存接口
@@ -18,7 +19,7 @@ public interface BaseAction {
      * 获取对象
      * Get object
      *
-     * @param key key
+     * @param key cache key
      * @return object
      */
     <T extends Serializable> T get(String key);
@@ -27,7 +28,7 @@ public interface BaseAction {
      * 批量获取对象
      * Get multiple objects
      *
-     * @param keys key list
+     * @param keys cache key list
      * @return multiple objects
      */
     <T extends Serializable> Map<String, T> getMul(List<String> keys);
@@ -36,7 +37,7 @@ public interface BaseAction {
      * 存储对象
      * Save object
      *
-     * @param key   key
+     * @param key   cache key
      * @param value object
      */
     <T extends Serializable> void set(String key, T value);
@@ -45,15 +46,15 @@ public interface BaseAction {
      * 设置多个对象
      * Save multiple objects
      *
-     * @param map key-value map
+     * @param keyValues key-value mapping
      */
-    <T extends Serializable> void setMul(Map<String, T> map);
+    <T extends Serializable> void setMul(Map<String, T> keyValues);
 
     /**
      * 删除对象
      * Delete object
      *
-     * @param key key
+     * @param key cache key
      */
     void del(String key);
 
@@ -61,7 +62,42 @@ public interface BaseAction {
      * 批量删除
      * Delete multiple objects
      *
-     * @param keys key list
+     * @param keys cache key list
      */
     void delMul(List<String> keys);
+
+    /**
+     * 存储内置缓存对象
+     * Save built-in cache object
+     *
+     * @param key         cache key
+     * @param cacheObject 缓存对象
+     */
+    void setCacheObject(String key, CacheObject cacheObject);
+
+    /**
+     * 批量存储内置缓存对象
+     * Batch save built-in cache objects
+     *
+     * @param keyObjects key-cacheObject mapping
+     */
+    void setMulCacheObject(Map<String, CacheObject> keyObjects);
+
+    /**
+     * 获取内置缓存对象
+     * Get built-in cache object
+     *
+     * @param key cache key
+     * @return built-in cache object
+     */
+    CacheObject getCacheObject(String key);
+
+    /**
+     * 批量获取内置缓存对象
+     * Get multiple built-in cache objects
+     *
+     * @param keys cache key list
+     * @return key-cacheObject mapping
+     */
+    Map<String, CacheObject> getMulCacheObject(List<String> keys);
 }

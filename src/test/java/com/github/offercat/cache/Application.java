@@ -1,5 +1,6 @@
 package com.github.offercat.cache;
 
+import com.github.offercat.cache.config.CacheFactory;
 import com.github.offercat.cache.config.CacheProperties;
 import com.github.offercat.cache.config.ItemProperties;
 import com.github.offercat.cache.inte.LocalCache;
@@ -28,10 +29,10 @@ public class Application {
     }
 
     @Bean
-    LocalCache localCache() {
+    LocalCache localCache(CacheFactory cacheFactory) {
         ItemProperties localProperties = properties.getConfig().get("local");
         localProperties.setTimeout(1);
         localProperties.setTimeunit(TimeUnit.SECONDS);
-        return new CaffeineCache("local", properties);
+        return cacheFactory.getLocalCacheInstance();
     }
 }

@@ -151,7 +151,7 @@ public class MultipleCacheImpl implements MultipleCache {
         // null 值回填
         if (fillBack && keys.size() > 0) {
             if (properties.isLogEnable()) {
-                log.info("getMul | Backfill null value, size = {}", keys.size());
+                log.info("getMul | backfill null value, size = {}", keys.size());
             }
             Map<String, T> nullValueMap = new HashMap<>(keys.size(), 2);
             keys.forEach(key -> nullValueMap.put(key, nullValue));

@@ -1,6 +1,6 @@
 package com.github.offercat.cache.inte;
 
-import com.github.offercat.cache.config.CacheProperties;
+import com.github.offercat.cache.config.ItemProperties;
 
 /**
  * 抽象本地缓存，所有本地缓存继承这个抽象类
@@ -11,7 +11,7 @@ import com.github.offercat.cache.config.CacheProperties;
  */
 public abstract class LocalCache extends AbstractCache {
 
-    public LocalCache(String name, CacheProperties cacheProperties) {
-        super(name, cacheProperties);
+    public LocalCache(String name, Serializer serializer, ItemProperties itemProperties){
+        super(name, serializer, itemProperties);
     }
 }

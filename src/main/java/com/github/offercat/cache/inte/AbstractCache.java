@@ -1,11 +1,16 @@
 package com.github.offercat.cache.inte;
 
 import com.github.offercat.cache.action.BaseAction;
-import com.github.offercat.cache.config.CacheProperties;
+import com.github.offercat.cache.broadcast.Broadcast;
+import com.github.offercat.cache.broadcast.WithBroadcast;
 import com.github.offercat.cache.config.ItemProperties;
-import com.github.offercat.cache.exception.ExceptionUtil;
+import com.github.offercat.cache.extra.CacheObject;
+import com.github.offercat.cache.extra.ExceptionUtil;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * 抽象缓存，所有缓存都需要集成这个类
@@ -16,7 +21,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Data
 @Slf4j
-public abstract class AbstractCache implements BaseAction {
+public abstract class AbstractCache implements BaseAction, WithBroadcast {
 
     /**
      * 缓存名称
@@ -48,18 +53,20 @@ public abstract class AbstractCache implements BaseAction {
      */
     private ItemProperties itemProperties;
 
-    public AbstractCache(String name, CacheProperties cacheProperties) {
-        ExceptionUtil.paramNull(name, "缓存名称不能为空！");
-        ExceptionUtil.paramNull(cacheProperties, "缓存配置不能为空！");
-        ExceptionUtil.paramNull(cacheProperties.getConfig(), "缓存配置不能为空！");
+    /**
+     * 序列化器
+     * Serializer
+     */
+    private Serializer serializer;
+
+    public AbstractCache(String name, Serializer serializer, ItemProperties itemProperties) {
+        ExceptionUtil.paramNull(name, "Cache name cannot be null！");
+        ExceptionUtil.paramNull(serializer, "Serializer cannot be null！");
+        ExceptionUtil.paramNull(itemProperties, "Cache properties cannot be null！");
         this.order = 1;
         this.name = name;
-        cacheProperties.getConfig().forEach((key, itemProperties) -> {
-            if (this.name.equals(key)) {
-                this.itemProperties = itemProperties;
-            }
-        });
-        ExceptionUtil.paramNull(itemProperties, "找不到指定名称的缓存配置！");
+        this.itemProperties = itemProperties;
+        this.serializer = serializer;
     }
 
     /**
@@ -70,10 +77,34 @@ public abstract class AbstractCache implements BaseAction {
      * @return next cache node
      */
     public AbstractCache setNext(AbstractCache next) {
-        ExceptionUtil.paramNull(next, "节点不能为空！");
+        ExceptionUtil.paramNull(next, "Next node cannot be null！");
         this.next = next;
-        this.next.setOrder(this.order + 1);
-        this.next.prev = this;
+        next.order = this.order + 1;
+        next.prev = this;
         return next;
+    }
+
+    @Override
+    @Broadcast(type = Broadcast.OperationType.SET_ONE)
+    public void setWithBroadcast(String key, CacheObject cacheObject) {
+        this.setCacheObject(key, cacheObject);
+    }
+
+    @Override
+    @Broadcast(type = Broadcast.OperationType.SET_MUL)
+    public void setMulWithBroadcast(Map<String, CacheObject> keyObjects) {
+        this.setMulCacheObject(keyObjects);
+    }
+
+    @Override
+    @Broadcast(type = Broadcast.OperationType.DEL_ONE)
+    public void delWithBroadcast(String key) {
+        this.del(key);
+    }
+
+    @Override
+    @Broadcast(type = Broadcast.OperationType.DEL_MUL)
+    public void delMulWithBroadcast(List<String> keys) {
+        this.delMul(keys);
     }
 }

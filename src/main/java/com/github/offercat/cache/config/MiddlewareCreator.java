@@ -2,9 +2,13 @@ package com.github.offercat.cache.config;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import io.nats.client.Connection;
+import io.nats.client.Nats;
 import lombok.extern.slf4j.Slf4j;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
+
+import java.io.IOException;
 
 /**
  * 中间件创建器
@@ -15,6 +19,35 @@ import redis.clients.jedis.JedisPoolConfig;
  */
 @Slf4j
 public class MiddlewareCreator {
+
+    /**
+     * 单例 Nats 连接
+     * Single Nats connection
+     */
+    private static volatile Connection connection;
+
+    /**
+     * 获取单例的 Nats 连接
+     * Get the Nats connection of a single instance
+     *
+     * @param properties cache properties
+     * @return Nats connection
+     */
+    public static Connection getConnection(CacheProperties properties) {
+        if (connection == null) {
+            synchronized (Connection.class) {
+                if (connection == null) {
+                    log.info("初始化 nats 本地缓存广播，topic = {} uri : {}", properties.getBroadcastTopic(), properties.getNatsUri());
+                    try {
+                        connection = Nats.connect(properties.getNatsUri());
+                    } catch (IOException | InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+        return connection;
+    }
 
     /**
      * 创建 Caffeine 本地缓存

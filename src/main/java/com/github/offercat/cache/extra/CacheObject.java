@@ -29,7 +29,7 @@ public class CacheObject implements Serializable {
      * 对象序列化后的字符串
      * String after object serialization
      */
-    private String serializeStr;
+    private Object object;
 
     /**
      * 对象写入缓存的时间

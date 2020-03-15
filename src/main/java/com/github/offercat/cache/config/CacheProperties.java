@@ -37,6 +37,12 @@ public class CacheProperties {
     private String broadcastTopic = "";
 
     /**
+     * 广播总开关
+     * Master broadcast switch
+     */
+    private boolean broadcastEnable;
+
+    /**
      * 各级缓存的配置映射
      * Configuration parameters mapping of all levels of cache
      */

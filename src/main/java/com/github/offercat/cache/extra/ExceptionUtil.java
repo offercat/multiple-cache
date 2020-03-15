@@ -1,4 +1,4 @@
-package com.github.offercat.cache.exception;
+package com.github.offercat.cache.extra;
 
 import java.security.InvalidParameterException;
 import java.util.Collection;

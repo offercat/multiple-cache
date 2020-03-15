@@ -1,10 +1,12 @@
 package com.github.offercat.cache;
 
+import com.github.offercat.cache.config.CacheFactory;
 import com.github.offercat.cache.config.CacheProperties;
 import com.github.offercat.cache.config.ItemProperties;
 import com.github.offercat.cache.inte.ClusterCache;
 import com.github.offercat.cache.inte.LocalCache;
 import com.github.offercat.cache.ready.CaffeineCache;
+import com.github.offercat.cache.ready.DefaultSerializer;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,14 +37,6 @@ class MultipleCacheTest {
 
     @Autowired
     private LocalCache localCache;
-
-    @Bean
-    LocalCache localCache() {
-        ItemProperties localProperties = properties.getConfig().get("local");
-        localProperties.setTimeout(1);
-        localProperties.setTimeunit(TimeUnit.SECONDS);
-        return new CaffeineCache("local", properties);
-    }
 
     @BeforeEach
     void setUp() {
@@ -221,9 +215,5 @@ class MultipleCacheTest {
         Assertions.assertTrue(users2.contains(user1));
         Assertions.assertFalse(users2.contains(user2));
         Assertions.assertFalse(users2.contains(user3));
-    }
-
-    @Test
-    void set() {
     }
 }

@@ -1,6 +1,6 @@
 package com.github.offercat.cache.inte;
 
-import com.github.offercat.cache.config.CacheProperties;
+import com.github.offercat.cache.config.ItemProperties;
 
 /**
  * 抽象直接缓存，所有直接缓存继承这个抽象类
@@ -11,7 +11,7 @@ import com.github.offercat.cache.config.CacheProperties;
  */
 public abstract class DirectCache extends AbstractCache {
 
-    public DirectCache(String name, CacheProperties cacheProperties) {
-        super(name, cacheProperties);
+    public DirectCache(String name, Serializer serializer, ItemProperties itemProperties){
+        super(name, serializer, itemProperties);
     }
 }

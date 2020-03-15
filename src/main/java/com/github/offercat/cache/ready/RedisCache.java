@@ -4,7 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.github.offercat.cache.config.CacheProperties;
 import com.github.offercat.cache.config.ItemProperties;
 import com.github.offercat.cache.config.MiddlewareCreator;
-import com.github.offercat.cache.exception.ExceptionUtil;
+import com.github.offercat.cache.extra.ExceptionUtil;
 import com.github.offercat.cache.extra.CacheObject;
 import com.github.offercat.cache.inte.ClusterCache;
 import com.github.offercat.cache.inte.Serializer;
@@ -31,18 +31,14 @@ import java.util.concurrent.*;
 public class RedisCache extends ClusterCache {
 
     private JedisPool jedisPool;
-    private Serializer serializer;
     private ExecutorService asyncPool;
 
-    public RedisCache(String name, Serializer serializer, CacheProperties cacheProperties) {
-        super(name, cacheProperties);
-        ItemProperties itemProperties = this.getItemProperties();
+    public RedisCache(String name, Serializer serializer, ItemProperties itemProperties) {
+        super(name, serializer, itemProperties);
         if (itemProperties.isEnable()) {
             ExceptionUtil.paramPositive(itemProperties.getTimeout(), "Expiration time must be greater than 0!");
             this.jedisPool = MiddlewareCreator.createJedisPool(itemProperties);
         }
-        ExceptionUtil.paramNull(serializer, "Serializer cannot be null!");
-        this.serializer = serializer;
         this.asyncPool = new ThreadPoolExecutor(
                 5,
                 10,
@@ -52,6 +48,11 @@ public class RedisCache extends ClusterCache {
                 new ThreadFactoryBuilder().setNameFormat("RedisCache Pool-%d").setDaemon(false).build(),
                 new ThreadPoolExecutor.AbortPolicy()
         );
+    }
+
+    @Override
+    public boolean supportBroadcast() {
+        return false;
     }
 
     @Override
@@ -74,7 +75,7 @@ public class RedisCache extends ClusterCache {
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
-        return serializer.deserializeFromString(cacheObject.getSerializeStr(), type);
+        return this.getSerializer().deserializeFromString((String) cacheObject.getObject(), type);
     }
 
     @Override
@@ -95,7 +96,7 @@ public class RedisCache extends ClusterCache {
                         throw new RuntimeException(e);
                     }
                 }
-                result.put(keys.get(i), serializer.deserializeFromString(cacheObject.getSerializeStr(), type));
+                result.put(keys.get(i), this.getSerializer().deserializeFromString((String) cacheObject.getObject(), type));
             }
         }
         return result;
@@ -108,26 +109,26 @@ public class RedisCache extends ClusterCache {
         }
         CacheObject cacheObject = new CacheObject(
                 ((Object) value).getClass().getName(),
-                serializer.serializeToString(value),
+                this.getSerializer().serializeToString(value),
                 System.currentTimeMillis()
         );
-        jedisPool.getResource().setex(key, this.getTimeUnitToMillisecond(), JSON.toJSONString(cacheObject));
+        this.setCacheObject(key, cacheObject);
     }
 
     @Override
-    public <T extends Serializable> void setMul(Map<String, T> map) {
-        if (CollectionUtils.isEmpty(map)) {
+    public <T extends Serializable> void setMul(Map<String, T> keyObjects) {
+        if (CollectionUtils.isEmpty(keyObjects)) {
             return;
         }
-        String[] keyValues = new String[map.size() * 2];
+        String[] keyValues = new String[keyObjects.size() * 2];
         int i = 0;
-        for (Map.Entry<String, T> entry : map.entrySet()) {
+        for (Map.Entry<String, T> entry : keyObjects.entrySet()) {
             if (StringUtils.isEmpty(entry.getKey()) || entry.getValue() == null) {
                 continue;
             }
             CacheObject cacheObject = new CacheObject(
                     ((Object) entry.getValue()).getClass().getName(),
-                    serializer.serializeToString(entry.getValue()),
+                    this.getSerializer().serializeToString(entry.getValue()),
                     System.currentTimeMillis()
             );
             keyValues[i] = entry.getKey();
@@ -136,7 +137,7 @@ public class RedisCache extends ClusterCache {
         }
         jedisPool.getResource().mset(keyValues);
         int expireSeconds = this.getTimeUnitToMillisecond();
-        asyncPool.execute(() -> map.keySet().forEach(key -> jedisPool.getResource().expire(key, expireSeconds)));
+        asyncPool.execute(() -> keyObjects.keySet().forEach(key -> jedisPool.getResource().expire(key, expireSeconds)));
     }
 
     @Override
@@ -153,6 +154,44 @@ public class RedisCache extends ClusterCache {
             return;
         }
         jedisPool.getResource().del(keys.toArray(new String[0]));
+    }
+
+    @Override
+    public void setCacheObject(String key, CacheObject cacheObject) {
+        if (StringUtils.isEmpty(key) || cacheObject == null) {
+            return;
+        }
+        jedisPool.getResource().setex(key, this.getTimeUnitToMillisecond(), JSON.toJSONString(cacheObject));
+    }
+
+    @Override
+    public void setMulCacheObject(Map<String, CacheObject> keyObjects) {
+        if (CollectionUtils.isEmpty(keyObjects)) {
+            return;
+        }
+        String[] keyValues = new String[keyObjects.size() * 2];
+        int i = 0;
+        for (Map.Entry<String, CacheObject> entry : keyObjects.entrySet()) {
+            if (StringUtils.isEmpty(entry.getKey()) || entry.getValue() == null) {
+                continue;
+            }
+            keyValues[i] = entry.getKey();
+            keyValues[i + 1] = JSON.toJSONString(entry.getValue());
+            i = i + 2;
+        }
+        jedisPool.getResource().mset(keyValues);
+        int expireSeconds = this.getTimeUnitToMillisecond();
+        asyncPool.execute(() -> keyObjects.keySet().forEach(key -> jedisPool.getResource().expire(key, expireSeconds)));
+    }
+
+    @Override
+    public CacheObject getCacheObject(String key) {
+        return null;
+    }
+
+    @Override
+    public Map<String, CacheObject> getMulCacheObject(List<String> keys) {
+        return null;
     }
 
     private int getTimeUnitToMillisecond() {
