@@ -10,9 +10,10 @@ import com.github.offercat.cache.ready.RedisCache;
 import lombok.AllArgsConstructor;
 
 /**
- * 缓存服务工厂
+ * 缓存工厂，用于创建本地缓存、直接缓存、集群缓存
+ * Cache factory, used to create local cache, direct cache, cluster cache
  *
- * @author 徐通 xutong34
+ * @author 徐通 Tony Xu myimpte@163.com
  * @since 2020年03月14日 16:49:54
  */
 @AllArgsConstructor

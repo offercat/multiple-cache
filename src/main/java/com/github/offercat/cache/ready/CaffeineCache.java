@@ -12,12 +12,12 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
- * 咖啡因本地缓存
+ * 开箱即用的 Caffeine 本地缓存
+ * Out of the box Caffeine local cache
  *
- * @author 徐通 xutong34
+ * @author 徐通 Tony Xu myimpte@163.com
  * @since 2020年03月14日 15:05:35
  */
 @SuppressWarnings("unchecked")
@@ -29,8 +29,8 @@ public class CaffeineCache extends LocalCache {
         super(name, properties);
         ItemProperties itemProperties = this.getItemProperties();
         if (itemProperties.isEnable()) {
-            ExceptionUtil.paramPositive(itemProperties.getMaxSize(), "最大容量必须大于0！");
-            ExceptionUtil.paramPositive(itemProperties.getTimeout(), "过期时间必须大于0！");
+            ExceptionUtil.paramPositive(itemProperties.getMaxSize(), "Max size must be greater than 0!");
+            ExceptionUtil.paramPositive(itemProperties.getTimeout(), "Expiration time must be greater than 0!");
             this.caffeine = MiddlewareCreator.createCaffeine(itemProperties);
         }
     }

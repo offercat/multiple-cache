@@ -8,8 +8,9 @@ import java.util.Map;
 
 /**
  * 缓存配置引入
+ * Cache configuration parameters integration
  *
- * @author 徐通 xutong34
+ * @author 徐通 Tony Xu myimpte@163.com
  * @since 2020年03月14日 01:16:41
  */
 @Data
@@ -17,15 +18,27 @@ import java.util.Map;
 @ConfigurationProperties("multiple.cache")
 public class CacheProperties {
 
-    /** 是否开启缓存日志 */
+    /**
+     * 是否开启缓存日志
+     * Open cache log or not
+     */
     private boolean logEnable = false;
 
-    /** 广播nats地址 */
+    /**
+     * 广播nats地址
+     * Nats broadcast address
+     */
     private String natsUri;
 
-    /** 广播主题 */
+    /**
+     * 广播主题
+     * Broadcast topic
+     */
     private String broadcastTopic = "";
 
-    /** 缓存名称和单个缓存配置的映射 */
+    /**
+     * 各级缓存的配置映射
+     * Configuration parameters mapping of all levels of cache
+     */
     private Map<String, ItemProperties> config;
 }

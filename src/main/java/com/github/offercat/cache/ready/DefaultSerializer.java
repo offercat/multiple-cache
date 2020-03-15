@@ -6,9 +6,10 @@ import com.github.offercat.cache.inte.Serializer;
 import java.io.*;
 
 /**
- * 默认序列化器
+ * 默认序列化器，字节数组使用 ObjectOutputStream 序列化，字符串使用 Alibaba fastjson 序列化
+ * Default serializer. Byte array is serialized with ObjectOutputStream and string is serialized with Alibaba fastjson
  *
- * @author 徐通 xutong34
+ * @author 徐通 Tony Xu myimpte@163.com
  * @since 2020年03月14日 17:56:58
  */
 @SuppressWarnings("unchecked")

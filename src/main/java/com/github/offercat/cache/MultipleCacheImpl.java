@@ -15,9 +15,10 @@ import java.util.*;
 import java.util.function.Supplier;
 
 /**
- * 多级缓存实现类
+ * 多级缓存实现
+ * Multi level cache implementation
  *
- * @author 徐通 xutong34
+ * @author 徐通 Tony Xu myimpte@163.com
  * @since 2020年03月14日 16:39:18
  */
 @Slf4j
@@ -42,7 +43,7 @@ public class MultipleCacheImpl implements MultipleCache {
         T callbackValue = callback.get();
         if (callbackValue != null) {
             if (properties.isLogEnable()) {
-                log.info("get | 回调函数拿到指定值 key = {}", key);
+                log.info("get | Callback function got the object, key = {}", key);
             }
             this.set(key, callbackValue);
             return callbackValue;
@@ -69,13 +70,13 @@ public class MultipleCacheImpl implements MultipleCache {
         T callbackValue = callback.get();
         if (callbackValue != null) {
             if (properties.isLogEnable()) {
-                log.info("get | 回调函数拿到指定值 key = {}", key);
+                log.info("get | Callback function got the object, key = {}", key);
             }
             this.set(key, callbackValue);
             return callbackValue;
         }
         if (properties.isLogEnable()) {
-            log.info("getMul | 回填null值 {}", nullValue);
+            log.info("getMul | Backfill null value {}", nullValue);
         }
         this.set(key, nullValue);
         return null;
@@ -91,7 +92,7 @@ public class MultipleCacheImpl implements MultipleCache {
         T value = node.get(key);
         if (value != null) {
             if (properties.isLogEnable()) {
-                log.info("get | {} 获取到指定值 key = {}", node.getName(), key);
+                log.info("get | {} got the object, key = {}", node.getName(), key);
             }
             return value;
         }
@@ -139,7 +140,7 @@ public class MultipleCacheImpl implements MultipleCache {
 
         if (!CollectionUtils.isEmpty(others)) {
             if (properties.isLogEnable()) {
-                log.info("getMul | 回调函数拿到{}个指定值", others.size());
+                log.info("getMul | callback function got {} objects", others.size());
             }
             Map<String, T> callbackMap = new HashMap<>(others.size());
             others.forEach(item -> callbackMap.put(cacheKeyGenerate.get(item.getObjectId()), item));
@@ -150,7 +151,7 @@ public class MultipleCacheImpl implements MultipleCache {
         // null 值回填
         if (fillBack && keys.size() > 0) {
             if (properties.isLogEnable()) {
-                log.info("getMul | 回填null值{}个", keys.size());
+                log.info("getMul | Backfill null value, size = {}", keys.size());
             }
             Map<String, T> nullValueMap = new HashMap<>(keys.size(), 2);
             keys.forEach(key -> nullValueMap.put(key, nullValue));
@@ -168,7 +169,7 @@ public class MultipleCacheImpl implements MultipleCache {
         }
         Map<String, T> resultMap = node.getMul(keys);
         if (properties.isLogEnable() && resultMap.size() > 0) {
-            log.info("getMul | {} 获取到{}个指定值", node.getName(), resultMap.size());
+            log.info("getMul | {} got {} objects", node.getName(), resultMap.size());
         }
         keys.removeAll(resultMap.keySet());
         if (keys.size() == 0) {

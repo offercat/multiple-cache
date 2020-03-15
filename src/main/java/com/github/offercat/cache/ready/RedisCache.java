@@ -11,7 +11,7 @@ import com.github.offercat.cache.inte.Serializer;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
-import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 
 import java.io.Serializable;
 import java.security.InvalidParameterException;
@@ -21,15 +21,16 @@ import java.util.Map;
 import java.util.concurrent.*;
 
 /**
- * redis缓存
+ * 开箱即用的 Redis 集群缓存
+ * Out of the box Redis cluster cache
  *
- * @author 徐通 xutong34
+ * @author 徐通 Tony Xu myimpte@163.com
  * @since 2020年03月14日 15:06:45
  */
 @SuppressWarnings("unchecked")
 public class RedisCache extends ClusterCache {
 
-    private Jedis jedis;
+    private JedisPool jedisPool;
     private Serializer serializer;
     private ExecutorService asyncPool;
 
@@ -37,10 +38,10 @@ public class RedisCache extends ClusterCache {
         super(name, cacheProperties);
         ItemProperties itemProperties = this.getItemProperties();
         if (itemProperties.isEnable()) {
-            ExceptionUtil.paramPositive(itemProperties.getTimeout(), "过期时间必须大于0！");
-            this.jedis = MiddlewareCreator.createJedis(itemProperties);
+            ExceptionUtil.paramPositive(itemProperties.getTimeout(), "Expiration time must be greater than 0!");
+            this.jedisPool = MiddlewareCreator.createJedisPool(itemProperties);
         }
-        ExceptionUtil.paramNull(serializer, "序列化器不能为空！");
+        ExceptionUtil.paramNull(serializer, "Serializer cannot be null!");
         this.serializer = serializer;
         this.asyncPool = new ThreadPoolExecutor(
                 5,
@@ -58,7 +59,7 @@ public class RedisCache extends ClusterCache {
         if (StringUtils.isEmpty(key)) {
             return null;
         }
-        String strObj = jedis.get(key);
+        String strObj = jedisPool.getResource().get(key);
         if (strObj == null) {
             return null;
         }
@@ -82,7 +83,7 @@ public class RedisCache extends ClusterCache {
         if (StringUtils.isEmpty(keys)) {
             return result;
         }
-        List<String> strObjList = jedis.mget(keys.toArray(new String[0]));
+        List<String> strObjList = jedisPool.getResource().mget(keys.toArray(new String[0]));
         Class<T> type = null;
         for (int i = 0; i < strObjList.size(); i++) {
             if (strObjList.get(i) != null) {
@@ -107,10 +108,10 @@ public class RedisCache extends ClusterCache {
         }
         CacheObject cacheObject = new CacheObject(
                 ((Object) value).getClass().getName(),
-                JSON.toJSONString(value),
+                serializer.serializeToString(value),
                 System.currentTimeMillis()
         );
-        jedis.setex(key, this.getTimeUnitToMillisecond(), JSON.toJSONString(cacheObject));
+        jedisPool.getResource().setex(key, this.getTimeUnitToMillisecond(), JSON.toJSONString(cacheObject));
     }
 
     @Override
@@ -126,17 +127,16 @@ public class RedisCache extends ClusterCache {
             }
             CacheObject cacheObject = new CacheObject(
                     ((Object) entry.getValue()).getClass().getName(),
-                    JSON.toJSONString(entry.getValue()),
+                    serializer.serializeToString(entry.getValue()),
                     System.currentTimeMillis()
             );
             keyValues[i] = entry.getKey();
-            keyValues[i+1] = JSON.toJSONString(cacheObject);
-            i = i+2;
+            keyValues[i + 1] = JSON.toJSONString(cacheObject);
+            i = i + 2;
         }
-        jedis.mset(keyValues);
+        jedisPool.getResource().mset(keyValues);
         int expireSeconds = this.getTimeUnitToMillisecond();
-        map.keySet().forEach(key -> jedis.expire(key, expireSeconds));
-        asyncPool.execute(() -> map.keySet().forEach(key -> jedis.expire(key, expireSeconds)));
+        asyncPool.execute(() -> map.keySet().forEach(key -> jedisPool.getResource().expire(key, expireSeconds)));
     }
 
     @Override
@@ -144,7 +144,7 @@ public class RedisCache extends ClusterCache {
         if (StringUtils.isEmpty(key)) {
             return;
         }
-        jedis.del(key);
+        jedisPool.getResource().del(key);
     }
 
     @Override
@@ -152,7 +152,7 @@ public class RedisCache extends ClusterCache {
         if (CollectionUtils.isEmpty(keys)) {
             return;
         }
-        jedis.del(keys.toArray(new String[0]));
+        jedisPool.getResource().del(keys.toArray(new String[0]));
     }
 
     private int getTimeUnitToMillisecond() {
@@ -169,10 +169,10 @@ public class RedisCache extends ClusterCache {
             result = timeout * 60 * 60 * 24;
         }
         if (result == -1) {
-            throw new InvalidParameterException(this.getName() + "缓存最小支持秒");
+            throw new InvalidParameterException("The minimum unit of Redis cache is seconds!");
         }
         if (result > Integer.MAX_VALUE) {
-            throw new InvalidParameterException(this.getName() + "缓存参数超出最大过期时间");
+            throw new InvalidParameterException("Redis cache expiration time exceeds the maximum range!");
         }
         return (int) result;
     }

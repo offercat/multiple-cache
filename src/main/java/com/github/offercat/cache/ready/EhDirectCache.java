@@ -8,9 +8,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Description
+ * 开箱即用的 EhCache 直接缓存
+ * Out of the box EhCache direct cache
  *
- * @author 徐通 xutong34
+ * @author 徐通 Tony Xu myimpte@163.com
  * @since 2020年03月14日 17:15:05
  */
 public class EhDirectCache extends DirectCache {

@@ -3,43 +3,48 @@ package com.github.offercat.cache.inte;
 import java.io.Serializable;
 
 /**
- * 序列化器
+ * 序列化器接口
+ * Serializer interface
  *
- * @author 徐通 xutong34
+ * @author 徐通 Tony Xu myimpte@163.com
  * @since 2020年03月14日 17:45:43
  */
 public interface Serializer {
 
     /**
      * 将对象序列化成字节数组
+     * Sequence object into byte arrays
      *
-     * @param object 对象
-     * @return 字节数组
+     * @param object object
+     * @return byte arrays
      */
     <T extends Serializable> byte[] serializeToBytes(T object);
 
     /**
      * 将字节数组反序列化成对象
+     * Deserialize byte array to object
      *
-     * @param bytes 字节数组
-     * @return 对象
+     * @param bytes byte arrays
+     * @return object
      */
     <T extends Serializable> T deserializeFromBytes(byte[] bytes);
 
     /**
      * 将对象序列化成字符串
+     * Sequence object into string
      *
-     * @param object 对象
-     * @return 字符串
+     * @param object object
+     * @return string
      */
     <T extends Serializable> String serializeToString(T object);
 
     /**
-     * 将对象序列化成字符串
+     * 将字符串反序列化为对象
+     * Deserialize string to object
      *
-     * @param str 字符串
-     * @param type 对象类型
-     * @return 对象
+     * @param str  string
+     * @param type object class type
+     * @return object
      */
     <T extends Serializable> T deserializeFromString(String str, Class<T> type);
 }
