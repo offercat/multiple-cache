@@ -101,7 +101,20 @@ public interface BaseAction {
      */
     Map<String, CacheObject> getMulCacheObject(List<String> keys);
 
-    <T extends Serializable> T transfer(CacheObject cacheObject);
+    /**
+     *
+     * @param cacheObject
+     * @param <T>
+     * @return
+     */
+    <T extends Serializable> T transferToObject(CacheObject cacheObject);
 
-    <T extends Serializable> CacheObject transfer(T obj, long time);
+    /**
+     *
+     * @param obj
+     * @param time
+     * @param <T>
+     * @return
+     */
+    <T extends Serializable> CacheObject transferToCacheObject(T obj, long time);
 }

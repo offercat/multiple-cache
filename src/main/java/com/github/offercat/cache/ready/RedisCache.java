@@ -1,6 +1,5 @@
 package com.github.offercat.cache.ready;
 
-import com.alibaba.fastjson.JSON;
 import com.github.offercat.cache.config.ItemProperties;
 import com.github.offercat.cache.config.MiddlewareCreator;
 import com.github.offercat.cache.extra.ExceptionUtil;
@@ -15,6 +14,7 @@ import redis.clients.jedis.JedisPool;
 
 import java.io.Serializable;
 import java.security.InvalidParameterException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,25 +62,11 @@ public class RedisCache extends ClusterCache {
 
     @Override
     public <T extends Serializable> T get(String key) {
-        if (StringUtils.isEmpty(key)) {
+        CacheObject cacheObject = this.getCacheObject(key);
+        if (cacheObject == null) {
             return null;
         }
-        String strObj = jedisPool.getResource().get(key);
-        if (strObj == null) {
-            return null;
-        }
-        return this.parseCacheObject(strObj);
-    }
-
-    private <T extends Serializable> T parseCacheObject(String strObj) {
-        CacheObject cacheObject = JSON.parseObject(strObj, CacheObject.class);
-        Class<T> type;
-        try {
-            type = (Class<T>) Class.forName(cacheObject.getTypeStr());
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-        return this.serializer.deserializeFromString((String) cacheObject.getObject(), type);
+        return this.transferToObject(cacheObject);
     }
 
     @Override
@@ -93,7 +79,7 @@ public class RedisCache extends ClusterCache {
         Class<T> type = null;
         for (int i = 0; i < strObjList.size(); i++) {
             if (strObjList.get(i) != null) {
-                CacheObject cacheObject = JSON.parseObject(strObjList.get(i), CacheObject.class);
+                CacheObject cacheObject = this.serializer.deserializeFromString(strObjList.get(i), CacheObject.class);
                 if (type == null) {
                     try {
                         type = (Class<T>) Class.forName(cacheObject.getTypeStr());
@@ -112,11 +98,8 @@ public class RedisCache extends ClusterCache {
         if (StringUtils.isEmpty(key) || value == null) {
             return;
         }
-        CacheObject cacheObject = new CacheObject(
-                ((Object) value).getClass().getName(),
-                this.serializer.serializeToString(value),
-                System.currentTimeMillis()
-        );
+        String strCacheObject = this.serializer.serializeToString(value);
+        CacheObject cacheObject = this.transferToCacheObject(strCacheObject, System.currentTimeMillis());
         this.setCacheObject(key, cacheObject);
     }
 
@@ -137,7 +120,7 @@ public class RedisCache extends ClusterCache {
                     System.currentTimeMillis()
             );
             keyValues[i] = entry.getKey();
-            keyValues[i + 1] = JSON.toJSONString(cacheObject);
+            keyValues[i + 1] = this.serializer.serializeToString(cacheObject);
             i = i + 2;
         }
         jedisPool.getResource().mset(keyValues);
@@ -166,7 +149,8 @@ public class RedisCache extends ClusterCache {
         if (StringUtils.isEmpty(key) || cacheObject == null) {
             return;
         }
-        jedisPool.getResource().setex(key, this.getTimeUnitToMillisecond(), JSON.toJSONString(cacheObject));
+        String cacheObjectStr = this.serializer.serializeToString(cacheObject);
+        jedisPool.getResource().setex(key, this.getTimeUnitToMillisecond(), cacheObjectStr);
     }
 
     @Override
@@ -181,7 +165,7 @@ public class RedisCache extends ClusterCache {
                 continue;
             }
             keyValues[i] = entry.getKey();
-            keyValues[i + 1] = JSON.toJSONString(entry.getValue());
+            keyValues[i + 1] = this.serializer.serializeToString(entry.getValue());
             i = i + 2;
         }
         jedisPool.getResource().mset(keyValues);
@@ -191,22 +175,54 @@ public class RedisCache extends ClusterCache {
 
     @Override
     public CacheObject getCacheObject(String key) {
-        return null;
+        if (StringUtils.isEmpty(key)) {
+            return null;
+        }
+        String cacheObjectStr = jedisPool.getResource().get(key);
+        if (StringUtils.isEmpty(cacheObjectStr)) {
+            return null;
+        }
+        return this.serializer.deserializeFromString(cacheObjectStr, CacheObject.class);
     }
 
     @Override
     public Map<String, CacheObject> getMulCacheObject(List<String> keys) {
-        return null;
+        if (CollectionUtils.isEmpty(keys)) {
+            return Collections.emptyMap();
+        }
+        Map<String, CacheObject> cacheObjectMap = new HashMap<>(keys.size(), 2);
+        List<String> strObjList = jedisPool.getResource().mget(keys.toArray(new String[0]));
+        for (int i = 0; i < strObjList.size(); i++) {
+            if (strObjList.get(i) != null) {
+                CacheObject cacheObject = this.serializer.deserializeFromString(strObjList.get(i), CacheObject.class);
+                cacheObjectMap.put(keys.get(i), cacheObject);
+            }
+        }
+        return cacheObjectMap;
     }
 
     @Override
-    public <T extends Serializable> T transfer(CacheObject cacheObject) {
-        return null;
+    public <T extends Serializable> T transferToObject(CacheObject cacheObject) {
+        if (cacheObject == null || cacheObject.getObject() == null || StringUtils.isEmpty(cacheObject.getTypeStr())) {
+            return null;
+        }
+        String objStr = (String) cacheObject.getObject();
+        Class<T> type;
+        try {
+            type = (Class<T>) Class.forName(cacheObject.getTypeStr());
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+            return null;
+        }
+        return serializer.deserializeFromString(objStr, type);
     }
 
     @Override
-    public <T extends Serializable> CacheObject transfer(T obj, long time) {
-        return null;
+    public <T extends Serializable> CacheObject transferToCacheObject(T obj, long time) {
+        if (obj == null) {
+            return null;
+        }
+        return new CacheObject(obj.getClass().getName(), serializer.serializeToString(obj), time);
     }
 
     private int getTimeUnitToMillisecond() {

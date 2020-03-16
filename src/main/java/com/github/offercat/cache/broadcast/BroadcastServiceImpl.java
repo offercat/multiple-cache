@@ -28,6 +28,7 @@ public class BroadcastServiceImpl implements BroadcastService {
     private final String topic;
     private final Connection connection;
     private final Serializer serializer;
+    private final CacheProperties properties;
     private final List<AbstractCache> cacheList;
 
     public BroadcastServiceImpl(CacheProperties properties, Serializer serializer, List<AbstractCache> cacheList) {
@@ -38,6 +39,7 @@ public class BroadcastServiceImpl implements BroadcastService {
         this.connection = MiddlewareCreator.getConnection(properties);
         this.serializer = serializer;
         this.cacheList = cacheList;
+        this.properties = properties;
         Dispatcher dispatcher = connection.createDispatcher(
                 msg -> this.dequeue(serializer.deserializeFromBytes(msg.getData()))
         );
@@ -53,7 +55,9 @@ public class BroadcastServiceImpl implements BroadcastService {
     @Override
     public void dequeue(BroadcastMessage message) {
         if (Objects.equals(message.getOrigin(), THIS_SERVER_FLAG)) {
-            log.debug("receive native message keys.size = {}", message.getBroadcastObjects().size());
+            if (properties.isLogEnable()) {
+                log.debug("receive native message keys.size = {}", message.getBroadcastObjects().size());
+            }
             return;
         }
         AbstractCache cache = this.getCache(message.getCacheName());
@@ -65,7 +69,9 @@ public class BroadcastServiceImpl implements BroadcastService {
         List<BroadcastObject> broadcastObjects = message.getBroadcastObjects();
         List<String> keys = broadcastObjects.stream().map(BroadcastObject::getKey).collect(Collectors.toList());
         if (message.isOnlyDel()) {
-            log.info("--- cache sync ---  收到 nats 广播消息，清除本地缓存 {} keys = {} ", keys.size(), keys);
+            if (properties.isLogEnable()) {
+                log.info("--- cache sync ---  {} cache, clean up {} keys = {} ", cache.getName(), keys.size(), keys);
+            }
             cache.delMul(keys);
             return;
         }
@@ -76,13 +82,22 @@ public class BroadcastServiceImpl implements BroadcastService {
                 return;
             }
             CacheObject cacheObject = cacheMap.get(broadcastObject.getKey());
-            if (cacheObject != null && Objects.equals(cacheObject.getObject(), broadcastObject.getCacheObject())) {
-                log.info("--- cache sync ---  缓存内容一致，不需要替换 key = {}", broadcastObject.getKey());
+            if (cacheObject != null && Objects.equals(cacheObject.getObject(), broadcastObject.getCacheObject().getObject())) {
+                if (properties.isLogEnable()) {
+                    log.info("--- cache sync ---  {} cache, consistent content, no need to replace key = {}",
+                            cache.getName(), broadcastObject.getKey());
+                }
                 return;
             }
             if (cacheObject == null || cacheObject.getSetTime() < broadcastObject.getCacheObject().getSetTime()) {
-                log.info("--- cache sync ---  更新的缓存对象  key = {}", broadcastObject.getKey());
+                if (properties.isLogEnable()) {
+                    log.info("--- cache sync ---  {} cache, update object key = {}", cache.getName(), broadcastObject.getKey());
+                }
                 cache.setCacheObject(broadcastObject.getKey(), broadcastObject.getCacheObject());
+            }
+            if (properties.isLogEnable()) {
+                log.info("--- cache sync ---  {} cache, received timestamp is old, no need to replace key = {}",
+                        cache.getName(), broadcastObject.getKey());
             }
         });
     }

@@ -85,12 +85,12 @@ public class EhDirectCache extends DirectCache {
     }
 
     @Override
-    public <T extends Serializable> T transfer(CacheObject cacheObject) {
+    public <T extends Serializable> T transferToObject(CacheObject cacheObject) {
         return null;
     }
 
     @Override
-    public <T extends Serializable> CacheObject transfer(T obj, long time) {
+    public <T extends Serializable> CacheObject transferToCacheObject(T obj, long time) {
         return null;
     }
 }

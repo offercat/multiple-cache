@@ -10,6 +10,8 @@ import redis.clients.jedis.JedisPoolConfig;
 
 import java.io.IOException;
 
+import static com.github.offercat.cache.broadcast.BroadcastService.TOPIC;
+
 /**
  * 中间件创建器
  * Middleware connection Creator
@@ -37,7 +39,8 @@ public class MiddlewareCreator {
         if (connection == null) {
             synchronized (Connection.class) {
                 if (connection == null) {
-                    log.info("初始化 nats 本地缓存广播，topic = {} uri : {}", properties.getBroadcastTopic(), properties.getNatsUri());
+                    log.info("Init nats connection，topic = {} uri : {}",
+                            TOPIC + properties.getBroadcastTopic().trim(), properties.getNatsUri());
                     try {
                         connection = Nats.connect(properties.getNatsUri());
                     } catch (IOException | InterruptedException e) {
@@ -57,7 +60,8 @@ public class MiddlewareCreator {
      * @return Caffeine cache
      */
     public static Cache<String, Object> createCaffeine(ItemProperties itemProperties) {
-        log.info("Init Caffeine local cache, uniform expiration time is {} {}", itemProperties.getTimeout(), itemProperties.getTimeunit());
+        log.info("Init Caffeine local cache, uniform expiration time is {} {}",
+                itemProperties.getTimeout(), itemProperties.getTimeunit());
         Cache<String, Object> caffeine;
         Caffeine<Object, Object> caffeineBuilder = Caffeine.newBuilder()
                 .initialCapacity(itemProperties.getMaxSize() / 2)
@@ -84,7 +88,8 @@ public class MiddlewareCreator {
      * @return JedisPool
      */
     public static JedisPool createJedisPool(ItemProperties itemProperties) {
-        log.info("Init redis cluster cache, uniform expiration time is {} {}", itemProperties.getTimeout(), itemProperties.getTimeunit());
+        log.info("Init redis cluster cache, uniform expiration time is {} {}",
+                itemProperties.getTimeout(), itemProperties.getTimeunit());
         JedisPoolConfig poolConfig = new JedisPoolConfig();
         poolConfig.setMaxTotal(50);
         poolConfig.setMinIdle(10);

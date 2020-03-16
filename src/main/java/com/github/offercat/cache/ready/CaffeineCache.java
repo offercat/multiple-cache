@@ -1,14 +1,11 @@
 package com.github.offercat.cache.ready;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.offercat.cache.config.CacheProperties;
 import com.github.offercat.cache.config.ItemProperties;
 import com.github.offercat.cache.config.MiddlewareCreator;
 import com.github.offercat.cache.extra.ExceptionUtil;
 import com.github.offercat.cache.extra.CacheObject;
 import com.github.offercat.cache.inte.LocalCache;
-import com.github.offercat.cache.inte.Serializer;
-import com.github.offercat.cache.proxy.UnIntercept;
 import lombok.NoArgsConstructor;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -158,12 +155,18 @@ public class CaffeineCache extends LocalCache {
     }
 
     @Override
-    public <T extends Serializable> T transfer(CacheObject cacheObject) {
-        return null;
+    public <T extends Serializable> T transferToObject(CacheObject cacheObject) {
+        if (cacheObject == null || cacheObject.getObject() == null) {
+            return null;
+        }
+        return (T) cacheObject.getObject();
     }
 
     @Override
-    public <T extends Serializable> CacheObject transfer(T obj, long time) {
-        return null;
+    public <T extends Serializable> CacheObject transferToCacheObject(T obj, long time) {
+        if (obj == null) {
+            return null;
+        }
+        return new CacheObject(obj.getClass().getName(), obj, time);
     }
 }

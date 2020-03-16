@@ -10,6 +10,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.ObjectUtils;
+import org.springframework.util.StringUtils;
 
 import java.io.Serializable;
 import java.util.*;
@@ -24,7 +25,6 @@ import java.util.function.Supplier;
  */
 @Slf4j
 @AllArgsConstructor
-@SuppressWarnings("unchecked")
 public class MultipleCacheImpl implements MultipleCache {
 
     private AbstractCache beginNode;
@@ -35,9 +35,10 @@ public class MultipleCacheImpl implements MultipleCache {
         if (ObjectUtils.isEmpty(key)) {
             return null;
         }
-        T value = this.get(key, beginNode);
-        if (value != null) {
-            return value;
+        AbstractCache availableCache = this.getAvailableCache(beginNode);
+        CacheObject cacheObject = this.get(key, availableCache);
+        if (cacheObject != null) {
+            return availableCache.transferToObject(cacheObject);
         }
         if (callback == null) {
             return null;
@@ -58,8 +59,10 @@ public class MultipleCacheImpl implements MultipleCache {
         if (ObjectUtils.isEmpty(key)) {
             return null;
         }
-        T value = this.get(key, beginNode);
-        if (value != null) {
+        AbstractCache availableCache = this.getAvailableCache(beginNode);
+        CacheObject cacheObject = this.get(key, availableCache);
+        if (cacheObject != null) {
+            T value = availableCache.transferToObject(cacheObject);
             if (value.equals(nullValue)) {
                 return null;
             }
@@ -88,9 +91,6 @@ public class MultipleCacheImpl implements MultipleCache {
         if (node == null) {
             return null;
         }
-        if (!node.getItemProperties().isEnable()) {
-            return get(key, node.getNext());
-        }
         CacheObject cacheObject = node.getCacheObject(key);
         if (cacheObject != null) {
             if (properties.isLogEnable()) {
@@ -98,12 +98,25 @@ public class MultipleCacheImpl implements MultipleCache {
             }
             return cacheObject;
         }
-        CacheObject nextObject = get(key, node.getNext());
+        AbstractCache nextAvailableCache = this.getAvailableCache(node.getNext());
+        CacheObject nextObject = this.get(key, nextAvailableCache);
         if (nextObject != null) {
-            CacheObject thisObject = node.transfer(node.getNext().transfer(nextObject), nextObject.getSetTime());
+            T obj = nextAvailableCache.transferToObject(nextObject);
+            CacheObject thisObject = node.transferToCacheObject(obj, nextObject.getSetTime());
             node.setWithBroadcast(key, thisObject);
+            return thisObject;
         }
-        return nextObject;
+        return null;
+    }
+
+    private AbstractCache getAvailableCache(AbstractCache node) {
+        if (node == null) {
+            return null;
+        }
+        if (node.getItemProperties().isEnable()) {
+            return node;
+        }
+        return getAvailableCache(node.getNext());
     }
 
     @Override
@@ -131,11 +144,15 @@ public class MultipleCacheImpl implements MultipleCache {
         Map<String, V> keyIdMap = new HashMap<>(objectIds.size(), 2);
         objectIds.forEach(objectId -> keyIdMap.put(cacheKeyGenerate.get(objectId), objectId));
 
+        Map<String, T> resultMap = new HashMap<>(objectIds.size(), 2);
+
         List<String> keys = new ArrayList<>(keyIdMap.keySet());
-        Map<String, T> resultMap = this.getMul(keys, beginNode);
+        AbstractCache availableCache = this.getAvailableCache(beginNode);
+        Map<String, CacheObject> cacheObjectMap = this.getMul(keys, availableCache);
         if (keys.size() == 0 || getMulFunction == null) {
-            return resultMap;
+            return this.transferToObjectMap(cacheObjectMap, availableCache);
         }
+        resultMap.putAll(this.transferToObjectMap(cacheObjectMap, availableCache));
 
         List<V> unResolveIds = new ArrayList<>();
         keys.forEach(key -> unResolveIds.add(keyIdMap.get(key)));
@@ -163,14 +180,11 @@ public class MultipleCacheImpl implements MultipleCache {
         return resultMap;
     }
 
-    private <T extends CacheId<V>, V> Map<String, T> getMul(List<String> keys, AbstractCache node) {
+    private Map<String, CacheObject> getMul(List<String> keys, AbstractCache node) {
         if (node == null) {
             return new HashMap<>(0);
         }
-        if (!node.getItemProperties().isEnable()) {
-            return getMul(keys, node.getNext());
-        }
-        Map<String, T> resultMap = node.getMul(keys);
+        Map<String, CacheObject> resultMap = node.getMulCacheObject(keys);
         resultMap = resultMap == null ? new HashMap<>(keys.size(), 2) : resultMap;
         if (properties.isLogEnable() && resultMap.size() > 0) {
             log.info("getMul | {} got {} objects", node.getName(), resultMap.size());
@@ -179,13 +193,30 @@ public class MultipleCacheImpl implements MultipleCache {
         if (keys.size() == 0) {
             return resultMap;
         }
-        Map<String, T> nextResultMap = getMul(keys, node.getNext());
+        AbstractCache nextAvailableCache = this.getAvailableCache(node.getNext());
+        Map<String, CacheObject> nextResultMap = getMul(keys, nextAvailableCache);
         // 回填
         if (!CollectionUtils.isEmpty(nextResultMap)) {
-            node.setMul(nextResultMap);
+            Map<String, CacheObject> thisCacheObjectMap = this.backfillCacheObjectMap(nextResultMap, node, nextAvailableCache);
+            resultMap.putAll(thisCacheObjectMap);
         }
-        resultMap.putAll(nextResultMap);
         return resultMap;
+    }
+
+    private <T extends CacheId<V>, V> Map<String, CacheObject> backfillCacheObjectMap(Map<String, CacheObject> nextResultMap,
+                                                                 AbstractCache thisCache,
+                                                                 AbstractCache nextCache) {
+        if (CollectionUtils.isEmpty(nextResultMap)) {
+            return new HashMap<>(0);
+        }
+        Map<String, CacheObject> thisCacheObjectMap = new HashMap<>(nextResultMap.size(), 2);
+        nextResultMap.forEach((key, nextObject) -> {
+            T object = nextCache.transferToObject(nextObject);
+            CacheObject thisObject = thisCache.transferToCacheObject(object, nextObject.getSetTime());
+            thisCacheObjectMap.put(key, thisObject);
+        });
+        thisCache.setMulWithBroadcast(thisCacheObjectMap);
+        return thisCacheObjectMap;
     }
 
     @Override
@@ -199,22 +230,48 @@ public class MultipleCacheImpl implements MultipleCache {
     }
 
     private <T extends Serializable> void setMul(Map<String, T> keyValues, AbstractCache node) {
-        if (node == null) {
+        if (CollectionUtils.isEmpty(keyValues) || node == null) {
             return;
         }
         if (node.getItemProperties().isEnable()) {
-            node.setMul(keyValues);
+            node.setMulWithBroadcast(transferToCacheObjectMap(keyValues, node, System.currentTimeMillis()));
         }
         this.setMul(keyValues, node.getNext());
     }
 
     private <T extends Serializable> void set(String key, T value, AbstractCache node) {
-        if (node == null) {
+        if (StringUtils.isEmpty(key) || value == null || node == null) {
             return;
         }
         if (node.getItemProperties().isEnable()) {
-            node.set(key, value);
+            CacheObject cacheObject = node.transferToCacheObject(value, System.currentTimeMillis());
+            node.setWithBroadcast(key, cacheObject);
         }
         this.set(key, value, node.getNext());
+    }
+
+    private <T extends Serializable> Map<String, CacheObject> transferToCacheObjectMap(Map<String, T> keyValues,
+                                                                                        AbstractCache cache,
+                                                                                        long time) {
+        if (CollectionUtils.isEmpty(keyValues)) {
+            return Collections.emptyMap();
+        }
+        Map<String, CacheObject> cacheObjectMap = new HashMap<>(keyValues.size(), 2);
+        keyValues.forEach((key, object) ->
+            cacheObjectMap.put(key, cache.transferToCacheObject(object, time))
+        );
+        return cacheObjectMap;
+    }
+
+    private <T extends Serializable> Map<String, T> transferToObjectMap(Map<String, CacheObject> cacheObjectMap,
+                                                                        AbstractCache cache) {
+        if (CollectionUtils.isEmpty(cacheObjectMap)) {
+            return Collections.emptyMap();
+        }
+        Map<String, T> objectMap = new HashMap<>(cacheObjectMap.size(), 2);
+        cacheObjectMap.forEach((key, cacheObject) ->
+                objectMap.put(key, cache.transferToObject(cacheObject))
+        );
+        return objectMap;
     }
 }

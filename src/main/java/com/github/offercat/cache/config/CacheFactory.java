@@ -2,13 +2,9 @@ package com.github.offercat.cache.config;
 
 import com.github.offercat.cache.broadcast.BroadcastService;
 import com.github.offercat.cache.broadcast.BroadcastServiceImpl;
-import com.github.offercat.cache.extra.ExceptionUtil;
 import com.github.offercat.cache.inte.*;
 import com.github.offercat.cache.proxy.CacheAspect;
 import com.github.offercat.cache.proxy.CommonProxy;
-import com.github.offercat.cache.ready.CaffeineCache;
-import com.github.offercat.cache.ready.EhDirectCache;
-import com.github.offercat.cache.ready.RedisCache;
 import lombok.AllArgsConstructor;
 
 import java.util.ArrayList;
