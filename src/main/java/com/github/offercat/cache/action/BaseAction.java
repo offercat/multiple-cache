@@ -100,4 +100,8 @@ public interface BaseAction {
      * @return key-cacheObject mapping
      */
     Map<String, CacheObject> getMulCacheObject(List<String> keys);
+
+    <T extends Serializable> T transfer(CacheObject cacheObject);
+
+    <T extends Serializable> CacheObject transfer(T obj, long time);
 }

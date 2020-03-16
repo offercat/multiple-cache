@@ -4,6 +4,7 @@ import com.github.offercat.cache.config.ItemProperties;
 import com.github.offercat.cache.extra.CacheObject;
 import com.github.offercat.cache.inte.DirectCache;
 import com.github.offercat.cache.inte.Serializer;
+import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.util.List;
@@ -16,10 +17,16 @@ import java.util.Map;
  * @author 徐通 Tony Xu myimpte@163.com
  * @since 2020年03月14日 17:15:05
  */
+@NoArgsConstructor
 public class EhDirectCache extends DirectCache {
 
     public EhDirectCache(String name, Serializer serializer, ItemProperties itemProperties) {
-        super(name, serializer, itemProperties);
+        super(name, itemProperties);
+    }
+
+    @Override
+    public void initMiddleware(ItemProperties itemProperties) {
+
     }
 
     @Override
@@ -74,6 +81,16 @@ public class EhDirectCache extends DirectCache {
 
     @Override
     public Map<String, CacheObject> getMulCacheObject(List<String> keys) {
+        return null;
+    }
+
+    @Override
+    public <T extends Serializable> T transfer(CacheObject cacheObject) {
+        return null;
+    }
+
+    @Override
+    public <T extends Serializable> CacheObject transfer(T obj, long time) {
         return null;
     }
 }

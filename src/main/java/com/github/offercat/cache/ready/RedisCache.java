@@ -1,7 +1,6 @@
 package com.github.offercat.cache.ready;
 
 import com.alibaba.fastjson.JSON;
-import com.github.offercat.cache.config.CacheProperties;
 import com.github.offercat.cache.config.ItemProperties;
 import com.github.offercat.cache.config.MiddlewareCreator;
 import com.github.offercat.cache.extra.ExceptionUtil;
@@ -9,6 +8,7 @@ import com.github.offercat.cache.extra.CacheObject;
 import com.github.offercat.cache.inte.ClusterCache;
 import com.github.offercat.cache.inte.Serializer;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import lombok.NoArgsConstructor;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import redis.clients.jedis.JedisPool;
@@ -28,17 +28,22 @@ import java.util.concurrent.*;
  * @since 2020年03月14日 15:06:45
  */
 @SuppressWarnings("unchecked")
+@NoArgsConstructor
 public class RedisCache extends ClusterCache {
 
     private JedisPool jedisPool;
     private ExecutorService asyncPool;
+    private Serializer serializer;
 
     public RedisCache(String name, Serializer serializer, ItemProperties itemProperties) {
-        super(name, serializer, itemProperties);
-        if (itemProperties.isEnable()) {
-            ExceptionUtil.paramPositive(itemProperties.getTimeout(), "Expiration time must be greater than 0!");
-            this.jedisPool = MiddlewareCreator.createJedisPool(itemProperties);
-        }
+        super(name, itemProperties);
+        this.serializer = serializer;
+    }
+
+    @Override
+    public void initMiddleware(ItemProperties itemProperties) {
+        ExceptionUtil.paramPositive(itemProperties.getTimeout(), "Expiration time must be greater than 0!");
+        this.jedisPool = MiddlewareCreator.createJedisPool(itemProperties);
         this.asyncPool = new ThreadPoolExecutor(
                 5,
                 10,
@@ -75,7 +80,7 @@ public class RedisCache extends ClusterCache {
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
-        return this.getSerializer().deserializeFromString((String) cacheObject.getObject(), type);
+        return this.serializer.deserializeFromString((String) cacheObject.getObject(), type);
     }
 
     @Override
@@ -96,7 +101,7 @@ public class RedisCache extends ClusterCache {
                         throw new RuntimeException(e);
                     }
                 }
-                result.put(keys.get(i), this.getSerializer().deserializeFromString((String) cacheObject.getObject(), type));
+                result.put(keys.get(i), this.serializer.deserializeFromString((String) cacheObject.getObject(), type));
             }
         }
         return result;
@@ -109,7 +114,7 @@ public class RedisCache extends ClusterCache {
         }
         CacheObject cacheObject = new CacheObject(
                 ((Object) value).getClass().getName(),
-                this.getSerializer().serializeToString(value),
+                this.serializer.serializeToString(value),
                 System.currentTimeMillis()
         );
         this.setCacheObject(key, cacheObject);
@@ -128,7 +133,7 @@ public class RedisCache extends ClusterCache {
             }
             CacheObject cacheObject = new CacheObject(
                     ((Object) entry.getValue()).getClass().getName(),
-                    this.getSerializer().serializeToString(entry.getValue()),
+                    this.serializer.serializeToString(entry.getValue()),
                     System.currentTimeMillis()
             );
             keyValues[i] = entry.getKey();
@@ -191,6 +196,16 @@ public class RedisCache extends ClusterCache {
 
     @Override
     public Map<String, CacheObject> getMulCacheObject(List<String> keys) {
+        return null;
+    }
+
+    @Override
+    public <T extends Serializable> T transfer(CacheObject cacheObject) {
+        return null;
+    }
+
+    @Override
+    public <T extends Serializable> CacheObject transfer(T obj, long time) {
         return null;
     }
 

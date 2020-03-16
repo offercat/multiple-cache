@@ -1,13 +1,13 @@
 package com.github.offercat.cache.proxy;
 
-import com.github.offercat.cache.config.ItemProperties;
-import com.github.offercat.cache.inte.Serializer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cglib.proxy.Enhancer;
 import org.springframework.cglib.proxy.MethodInterceptor;
 import org.springframework.cglib.proxy.MethodProxy;
 
 import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * 公用动态代理
@@ -19,32 +19,36 @@ import java.lang.reflect.Method;
 @SuppressWarnings("unchecked")
 public class CommonProxy<T> implements MethodInterceptor {
 
+    private T target;
     private AbstractAop aop;
+    private static final List<String> INTERCEPT_WHITE_LIST = Arrays.asList(
+            "toString",
+            "supportBroadcast",
+            "initMiddleware"
+    );
 
-    public T getProxy(Class<T> cls,
-                      AbstractAop aop,
-                      String cacheName,
-                      Serializer serializer,
-                      ItemProperties itemProperties) {
+    public T getProxy(T target, AbstractAop aop) {
+        this.target = target;
         this.aop = aop;
         Enhancer enhancer = new Enhancer();
-        enhancer.setSuperclass(cls);
+        enhancer.setSuperclass(target.getClass());
         enhancer.setCallback(this);
-        return (T) enhancer.create(
-                new Class[]{String.class, Serializer.class, ItemProperties.class},
-                new Object[]{cacheName, serializer, itemProperties});
+        return (T) enhancer.create();
     }
 
     @Override
-    public Object intercept(Object o, Method method, Object[] args, MethodProxy methodProxy) {
-        log.info(method.getName());
+    public Object intercept(Object o, Method method, Object[] args, MethodProxy methodProxy) throws Throwable {
+        UnIntercept unIntercept = method.getAnnotation(UnIntercept.class);
+        if (unIntercept != null || INTERCEPT_WHITE_LIST.contains(method.getName())) {
+            return methodProxy.invoke(target, args);
+        }
         ProxyPoint point = new ProxyPoint(o, method, args);
         try {
             Object result;
             try {
                 result = aop.around(point, () -> {
                     aop.before(point);
-                    return methodProxy.invoke(o, args);
+                    return methodProxy.invoke(target, args);
                 });
             } finally {
                 aop.after(point);

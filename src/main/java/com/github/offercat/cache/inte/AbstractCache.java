@@ -6,7 +6,8 @@ import com.github.offercat.cache.broadcast.WithBroadcast;
 import com.github.offercat.cache.config.ItemProperties;
 import com.github.offercat.cache.extra.CacheObject;
 import com.github.offercat.cache.extra.ExceptionUtil;
-import lombok.Data;
+import com.github.offercat.cache.proxy.UnIntercept;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
@@ -19,8 +20,8 @@ import java.util.Map;
  * @author 徐通 Tony Xu myimpte@163.com
  * @since 2020年03月14日 15:12:32
  */
-@Data
 @Slf4j
+@NoArgsConstructor
 public abstract class AbstractCache implements BaseAction, WithBroadcast {
 
     /**
@@ -53,21 +54,24 @@ public abstract class AbstractCache implements BaseAction, WithBroadcast {
      */
     private ItemProperties itemProperties;
 
-    /**
-     * 序列化器
-     * Serializer
-     */
-    private Serializer serializer;
-
-    public AbstractCache(String name, Serializer serializer, ItemProperties itemProperties) {
+    public AbstractCache(String name, ItemProperties itemProperties) {
         ExceptionUtil.paramNull(name, "Cache name cannot be null！");
-        ExceptionUtil.paramNull(serializer, "Serializer cannot be null！");
         ExceptionUtil.paramNull(itemProperties, "Cache properties cannot be null！");
         this.order = 1;
         this.name = name;
         this.itemProperties = itemProperties;
-        this.serializer = serializer;
+        if (itemProperties.isEnable()) {
+            this.initMiddleware(itemProperties);
+        }
     }
+
+    /**
+     * 初始化中间件
+     * Initialize Middleware
+     *
+     * @param itemProperties Parameter configuration of this cache
+     */
+    public abstract void initMiddleware(ItemProperties itemProperties);
 
     /**
      * 设置并返回下一个缓存节点
@@ -76,12 +80,38 @@ public abstract class AbstractCache implements BaseAction, WithBroadcast {
      * @param next next cache node
      * @return next cache node
      */
+    @UnIntercept
     public AbstractCache setNext(AbstractCache next) {
         ExceptionUtil.paramNull(next, "Next node cannot be null！");
         this.next = next;
         next.order = this.order + 1;
         next.prev = this;
         return next;
+    }
+
+    @UnIntercept
+    public String getName() {
+        return name;
+    }
+
+    @UnIntercept
+    public int getOrder() {
+        return order;
+    }
+
+    @UnIntercept
+    public AbstractCache getNext() {
+        return next;
+    }
+
+    @UnIntercept
+    public AbstractCache getPrev() {
+        return prev;
+    }
+
+    @UnIntercept
+    public ItemProperties getItemProperties() {
+        return itemProperties;
     }
 
     @Override

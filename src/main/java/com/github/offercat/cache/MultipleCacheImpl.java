@@ -3,6 +3,7 @@ package com.github.offercat.cache;
 import com.github.offercat.cache.config.CacheProperties;
 import com.github.offercat.cache.extra.CacheId;
 import com.github.offercat.cache.extra.CacheKeyGenerate;
+import com.github.offercat.cache.extra.CacheObject;
 import com.github.offercat.cache.extra.GetMulFunction;
 import com.github.offercat.cache.inte.AbstractCache;
 import lombok.AllArgsConstructor;
@@ -23,6 +24,7 @@ import java.util.function.Supplier;
  */
 @Slf4j
 @AllArgsConstructor
+@SuppressWarnings("unchecked")
 public class MultipleCacheImpl implements MultipleCache {
 
     private AbstractCache beginNode;
@@ -43,7 +45,7 @@ public class MultipleCacheImpl implements MultipleCache {
         T callbackValue = callback.get();
         if (callbackValue != null) {
             if (properties.isLogEnable()) {
-                log.info("get | Callback function got the object, key = {}", key);
+                log.info("get | callback function got the object, key = {}", key);
             }
             this.set(key, callbackValue);
             return callbackValue;
@@ -70,37 +72,38 @@ public class MultipleCacheImpl implements MultipleCache {
         T callbackValue = callback.get();
         if (callbackValue != null) {
             if (properties.isLogEnable()) {
-                log.info("get | Callback function got the object, key = {}", key);
+                log.info("get | callback function got the object, key = {}", key);
             }
             this.set(key, callbackValue);
             return callbackValue;
         }
         if (properties.isLogEnable()) {
-            log.info("getMul | Backfill null value {}", nullValue);
+            log.info("get | backfill null value {}", nullValue);
         }
         this.set(key, nullValue);
         return null;
     }
 
-    private <T extends Serializable> T get(String key, AbstractCache node) {
+    private <T extends Serializable> CacheObject get(String key, AbstractCache node) {
         if (node == null) {
             return null;
         }
         if (!node.getItemProperties().isEnable()) {
             return get(key, node.getNext());
         }
-        T value = node.get(key);
-        if (value != null) {
+        CacheObject cacheObject = node.getCacheObject(key);
+        if (cacheObject != null) {
             if (properties.isLogEnable()) {
                 log.info("get | {} got the object, key = {}", node.getName(), key);
             }
-            return value;
+            return cacheObject;
         }
-        T nextValue = get(key, node.getNext());
-        if (nextValue != null) {
-            node.set(key, nextValue);
+        CacheObject nextObject = get(key, node.getNext());
+        if (nextObject != null) {
+            CacheObject thisObject = node.transfer(node.getNext().transfer(nextObject), nextObject.getSetTime());
+            node.setWithBroadcast(key, thisObject);
         }
-        return nextValue;
+        return nextObject;
     }
 
     @Override
@@ -118,12 +121,12 @@ public class MultipleCacheImpl implements MultipleCache {
         return this.getMul(objectIds, cacheKeyGenerate, getMulFunction, true, nullValue).values();
     }
 
-    public <T extends CacheId<V>, V> Map<String, T> getMul(Collection<V> objectIds,
+    private <T extends CacheId<V>, V> Map<String, T> getMul(Collection<V> objectIds,
                                                           CacheKeyGenerate<V> cacheKeyGenerate,
                                                           GetMulFunction<T, V> getMulFunction,
                                                            boolean fillBack, T nullValue) {
         if (CollectionUtils.isEmpty(objectIds)) {
-            return new HashMap<>();
+            return new HashMap<>(0);
         }
         Map<String, V> keyIdMap = new HashMap<>(objectIds.size(), 2);
         objectIds.forEach(objectId -> keyIdMap.put(cacheKeyGenerate.get(objectId), objectId));
@@ -168,6 +171,7 @@ public class MultipleCacheImpl implements MultipleCache {
             return getMul(keys, node.getNext());
         }
         Map<String, T> resultMap = node.getMul(keys);
+        resultMap = resultMap == null ? new HashMap<>(keys.size(), 2) : resultMap;
         if (properties.isLogEnable() && resultMap.size() > 0) {
             log.info("getMul | {} got {} objects", node.getName(), resultMap.size());
         }

@@ -4,6 +4,7 @@ import com.github.offercat.cache.MultipleCache;
 import com.github.offercat.cache.MultipleCacheImpl;
 import com.github.offercat.cache.inte.*;
 import com.github.offercat.cache.ready.DefaultSerializer;
+import com.github.offercat.cache.ready.ThreeLevelCacheFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -44,7 +45,7 @@ public class CacheAutoConfig {
     @Bean
     @ConditionalOnMissingBean(CacheFactory.class)
     CacheFactory cacheFactory(Serializer serializer) {
-        return new CacheFactory(cacheProperties, serializer);
+        return new ThreeLevelCacheFactory(cacheProperties, serializer);
     }
 
     /**

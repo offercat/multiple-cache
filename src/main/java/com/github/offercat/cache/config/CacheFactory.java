@@ -22,42 +22,25 @@ import java.util.List;
  * @since 2020年03月14日 16:49:54
  */
 @AllArgsConstructor
-public class CacheFactory {
+public abstract class CacheFactory {
 
-    private CacheProperties properties;
-    private Serializer serializer;
+    protected CacheProperties properties;
+    protected Serializer serializer;
     private static List<AbstractCache> REGISTER_CACHE_LIST = new ArrayList<>();
 
-    public <T extends AbstractCache> T getCacheInstance(String cacheName, Class<T> cacheType) {
-        ExceptionUtil.paramNull(cacheName, "Cache name can not be null!");
-        ExceptionUtil.paramNull(cacheType, "Cache type can not be null!");
-        ItemProperties itemProperties = properties.getConfig().get(cacheName);
-        ExceptionUtil.paramNull(cacheType, "No cache properties matching " + cacheName + " found!");
-
-        BroadcastService broadcastService = properties.isBroadcastEnable()
-                ? new BroadcastServiceImpl(properties, serializer, REGISTER_CACHE_LIST) : null;
+    protected <T extends AbstractCache> T initInstance(T target) {
+        BroadcastService broadcastService = properties.isBroadcastEnable() ?
+                new BroadcastServiceImpl(properties, serializer, REGISTER_CACHE_LIST) : null;
 
         CommonProxy<T> proxy = new CommonProxy<>();
-        T cache = proxy.getProxy(
-                cacheType,
-                new CacheAspect(cacheName, properties, broadcastService),
-                cacheName,
-                serializer,
-                itemProperties
-        );
+        T cache = proxy.getProxy(target, new CacheAspect(target, properties, broadcastService));
         REGISTER_CACHE_LIST.add(cache);
         return cache;
     }
 
-    public LocalCache getLocalCacheInstance() {
-        return this.getCacheInstance("local", CaffeineCache.class);
-    }
+    public abstract LocalCache getLocalCacheInstance();
 
-    public ClusterCache getClusterCacheInstance() {
-        return this.getCacheInstance("cluster", RedisCache.class);
-    }
+    public abstract ClusterCache getClusterCacheInstance();
 
-    public DirectCache getDirectCacheInstance() {
-        return this.getCacheInstance("direct", EhDirectCache.class);
-    }
+    public abstract DirectCache getDirectCacheInstance();
 }

@@ -5,6 +5,7 @@ import com.github.offercat.cache.action.ListAction;
 import com.github.offercat.cache.action.SetAction;
 import com.github.offercat.cache.action.ZsetAction;
 import com.github.offercat.cache.config.ItemProperties;
+import lombok.NoArgsConstructor;
 
 /**
  * 抽象集群缓存，所有集群缓存继承这个抽象类
@@ -13,9 +14,10 @@ import com.github.offercat.cache.config.ItemProperties;
  * @author 徐通 Tony Xu myimpte@163.com
  * @since 2020年03月14日 16:34:45
  */
+@NoArgsConstructor
 public abstract class ClusterCache extends AbstractCache implements HashAction, ListAction, SetAction, ZsetAction {
 
-    public ClusterCache(String name, Serializer serializer, ItemProperties itemProperties){
-        super(name, serializer, itemProperties);
+    public ClusterCache(String name, ItemProperties itemProperties){
+        super(name, itemProperties);
     }
 }

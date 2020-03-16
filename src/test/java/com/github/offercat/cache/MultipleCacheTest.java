@@ -1,12 +1,9 @@
 package com.github.offercat.cache;
 
-import com.github.offercat.cache.config.CacheFactory;
 import com.github.offercat.cache.config.CacheProperties;
 import com.github.offercat.cache.config.ItemProperties;
 import com.github.offercat.cache.inte.ClusterCache;
 import com.github.offercat.cache.inte.LocalCache;
-import com.github.offercat.cache.ready.CaffeineCache;
-import com.github.offercat.cache.ready.DefaultSerializer;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,7 +12,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.*;
@@ -68,7 +64,7 @@ class MultipleCacheTest {
     }
 
     @Test
-    @DisplayName("本地缓存拿到 | 集群缓存拿到")
+    @DisplayName("回填null | 本地缓存拿到 | 集群缓存拿到")
     void get2() throws InterruptedException {
         String key = UUID.randomUUID().toString();
         User result = multipleCache.get(key, new User(), () -> null);

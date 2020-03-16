@@ -33,7 +33,6 @@ public class BroadcastServiceImpl implements BroadcastService {
     public BroadcastServiceImpl(CacheProperties properties, Serializer serializer, List<AbstractCache> cacheList) {
         ExceptionUtil.paramNull(properties, "cacheProperties can not be null!");
         ExceptionUtil.paramNull(serializer, "serializer can not be null!");
-        ExceptionUtil.paramNull(cacheList, "cache list can not be null!");
         ExceptionUtil.paramNull(properties.getNatsUri(), "nats uri can not be null!");
         this.topic = TOPIC + properties.getBroadcastTopic().trim();
         this.connection = MiddlewareCreator.getConnection(properties);

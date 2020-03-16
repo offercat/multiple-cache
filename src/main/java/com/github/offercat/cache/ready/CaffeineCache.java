@@ -8,6 +8,8 @@ import com.github.offercat.cache.extra.ExceptionUtil;
 import com.github.offercat.cache.extra.CacheObject;
 import com.github.offercat.cache.inte.LocalCache;
 import com.github.offercat.cache.inte.Serializer;
+import com.github.offercat.cache.proxy.UnIntercept;
+import lombok.NoArgsConstructor;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
@@ -24,15 +26,20 @@ import java.util.Map;
  * @since 2020年03月14日 15:05:35
  */
 @SuppressWarnings("unchecked")
+@NoArgsConstructor
 public class CaffeineCache extends LocalCache {
 
     private Cache<String, Object> caffeine;
 
-    public CaffeineCache(String name, Serializer serializer, ItemProperties itemProperties) {
-        super(name, serializer, itemProperties);
-        if (itemProperties.isEnable()) {
-            ExceptionUtil.paramPositive(itemProperties.getMaxSize(), "Max size must be greater than 0!");
-            ExceptionUtil.paramPositive(itemProperties.getTimeout(), "Expiration time must be greater than 0!");
+    public CaffeineCache(String name, ItemProperties itemProperties) {
+        super(name, itemProperties);
+    }
+
+    @Override
+    public void initMiddleware(ItemProperties itemProperties) {
+        ExceptionUtil.paramPositive(itemProperties.getMaxSize(), "Max size must be greater than 0!");
+        ExceptionUtil.paramPositive(itemProperties.getTimeout(), "Expiration time must be greater than 0!");
+        if (this.caffeine == null) {
             this.caffeine = MiddlewareCreator.createCaffeine(itemProperties);
         }
     }
@@ -148,5 +155,15 @@ public class CaffeineCache extends LocalCache {
             }
         });
         return result;
+    }
+
+    @Override
+    public <T extends Serializable> T transfer(CacheObject cacheObject) {
+        return null;
+    }
+
+    @Override
+    public <T extends Serializable> CacheObject transfer(T obj, long time) {
+        return null;
     }
 }

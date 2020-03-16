@@ -5,9 +5,10 @@ import com.github.offercat.cache.broadcast.BroadcastMessage;
 import com.github.offercat.cache.broadcast.BroadcastObject;
 import com.github.offercat.cache.broadcast.BroadcastService;
 import com.github.offercat.cache.config.CacheProperties;
-import com.github.offercat.cache.config.ItemProperties;
 import com.github.offercat.cache.extra.CacheObject;
 import com.github.offercat.cache.extra.ThrowFunction;
+import com.github.offercat.cache.inte.AbstractCache;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
@@ -22,25 +23,16 @@ import static com.github.offercat.cache.broadcast.BroadcastService.THIS_SERVER_F
  */
 @Slf4j
 @SuppressWarnings("unchecked")
+@AllArgsConstructor
 public class CacheAspect extends AbstractAop {
 
-    private String cacheName;
+    private AbstractCache target;
     private CacheProperties properties;
-    private ItemProperties itemProperties;
     private BroadcastService broadcastService;
-
-    public CacheAspect(String cacheName, CacheProperties properties, BroadcastService broadcastService) {
-        this.cacheName = cacheName;
-        this.properties = properties;
-        this.itemProperties = properties.getConfig().get(cacheName);
-        if (properties.isBroadcastEnable()) {
-            this.broadcastService = broadcastService;
-        }
-    }
 
     @Override
     public Object around(ProxyPoint point, ThrowFunction<Object> function) throws Throwable {
-        if (itemProperties.isEnable()) {
+        if (target.getItemProperties().isEnable()) {
             return function.get();
         }
         return null;
@@ -48,7 +40,7 @@ public class CacheAspect extends AbstractAop {
 
     @Override
     public void afterReturning(ProxyPoint point) {
-        if (properties.isBroadcastEnable() && itemProperties.isBroadcastEnable() && broadcastService != null) {
+        if (target.supportBroadcast() && properties.isBroadcastEnable() && target.getItemProperties().isBroadcastEnable()) {
             Broadcast broadcast = point.getMethod().getAnnotation(Broadcast.class);
             if (broadcast == null) {
                 return;
@@ -72,7 +64,7 @@ public class CacheAspect extends AbstractAop {
         BroadcastObject broadcastObject = new BroadcastObject((String) point.getArgs()[0], cacheObject);
         broadcastService.enqueue(new BroadcastMessage(
                 THIS_SERVER_FLAG,
-                cacheName,
+                target.getName(),
                 false,
                 Collections.singletonList(broadcastObject)
         ));
@@ -84,14 +76,14 @@ public class CacheAspect extends AbstractAop {
         cacheObjectMap.forEach((key, cacheObject) ->
                 broadcastObjectList.add(new BroadcastObject(key, cacheObject))
         );
-        broadcastService.enqueue(new BroadcastMessage(THIS_SERVER_FLAG, cacheName, false, broadcastObjectList));
+        broadcastService.enqueue(new BroadcastMessage(THIS_SERVER_FLAG, target.getName(), false, broadcastObjectList));
     }
 
     private void delOne(ProxyPoint point) {
         BroadcastObject broadcastObject = new BroadcastObject( (String) point.getArgs()[0], null);
         broadcastService.enqueue(new BroadcastMessage(
                 THIS_SERVER_FLAG,
-                cacheName,
+                target.getName(),
                 true,
                 Collections.singletonList(broadcastObject))
         );
@@ -105,7 +97,7 @@ public class CacheAspect extends AbstractAop {
         );
         broadcastService.enqueue(new BroadcastMessage(
                 THIS_SERVER_FLAG,
-                cacheName,
+                target.getName(),
                 true,
                 broadcastObjectList
         ));
