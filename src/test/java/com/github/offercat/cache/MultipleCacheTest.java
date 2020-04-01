@@ -3,6 +3,7 @@ package com.github.offercat.cache;
 import com.github.offercat.cache.config.CacheProperties;
 import com.github.offercat.cache.config.ItemProperties;
 import com.github.offercat.cache.inte.ClusterCache;
+import com.github.offercat.cache.inte.DirectCache;
 import com.github.offercat.cache.inte.LocalCache;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
@@ -33,6 +34,9 @@ class MultipleCacheTest {
 
     @Autowired
     private LocalCache localCache;
+
+    @Autowired
+    private DirectCache directCache;
 
     @BeforeEach
     void setUp() {

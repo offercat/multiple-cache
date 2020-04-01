@@ -4,7 +4,6 @@ import com.github.offercat.cache.config.CacheFactory;
 import com.github.offercat.cache.config.CacheProperties;
 import com.github.offercat.cache.config.ItemProperties;
 import com.github.offercat.cache.inte.LocalCache;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -22,15 +21,12 @@ import java.util.concurrent.TimeUnit;
 @SpringBootApplication
 public class Application {
 
-    @Autowired
-    private CacheProperties properties;
-
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }
 
     @Bean
-    LocalCache localCache(CacheFactory cacheFactory) {
+    LocalCache localCache(CacheFactory cacheFactory, CacheProperties properties) {
         ItemProperties localProperties = properties.getConfig().get("local");
         localProperties.setTimeout(1);
         localProperties.setTimeunit(TimeUnit.SECONDS);

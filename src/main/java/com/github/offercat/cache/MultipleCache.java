@@ -88,4 +88,19 @@ public interface MultipleCache {
      * @param keyValues key-value mapping
      */
     <T extends Serializable> void setMul(Map<String, T> keyValues);
+
+    /**
+     * 逐级删除缓存对象
+     * Del multi cache object level by level
+     *
+     * @param key cache key
+     */
+    void del(String key);
+
+    /**
+     * 逐级批量删除缓存对象
+     *
+     * @param keys cache key collection
+     */
+    void delMul(Collection<String> keys);
 }
