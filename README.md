@@ -85,7 +85,7 @@ User result = multipleCache.get(key, () -> userDao.findById(id));
 User result = multipleCache.get(key, new User(), () -> userDao.findById(id));
 ```
 #### 4、批量获取，最小化IO次数
-**批量接口就有意思了，加入你需要100个对象，获取方式是分级获取的，如果一次性从本地缓存中拿到是最好的情况了，如果本地缓存只拿到50个，那
+**批量接口就有意思了，假如你需要100个对象，获取方式是分级获取的，如果一次性从本地缓存中拿到是最好的情况了，如果本地缓存只拿到50个，那
 接下来的50个从后面的缓存中去取。当然，有可能缓存中拿到了80个，还有20个就交给回填策略吧！是不是很给力呢！**
 ```java
 Collection<User> users = multipleCache.getMul(
