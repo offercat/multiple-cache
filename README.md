@@ -75,12 +75,12 @@ multiple.cache.config.cluster.timeunit=seconds
 private MultipleCache multipleCache;
 ```
 #### 2、简单通用的查询接口
-**给定缓存key，依次重多级缓存获取，如果多级缓存没有指定值，则穿透缓存，调用回调函数并自动回填**
+**给定缓存key，依次从多级缓存获取，如果多级缓存没有指定值，则穿透缓存，调用回调函数并自动回填**
 ```java
 User result = multipleCache.get(key, () -> userDao.findById(id));
 ```
 #### 3、null 值回填，防止DoS攻击
-**给定缓存key，依次重多级缓存获取，如果回调函数拿到null值，会将给定的值回填到缓存，防止暴露调用穿透缓存而打垮数据库**
+**给定缓存key，依次从多级缓存获取，如果回调函数拿到null值，会将给定的值回填到缓存，防止暴露调用穿透缓存而打垮数据库**
 ```java
 User result = multipleCache.get(key, new User(), () -> userDao.findById(id));
 ```
