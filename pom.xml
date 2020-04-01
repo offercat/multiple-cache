@@ -6,7 +6,7 @@
 
     <groupId>com.github.offercat</groupId>
     <artifactId>multiple-cache</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0.RELEASE</version>
     <packaging>jar</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -162,6 +162,9 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>2.9.1</version>
+                <configuration>
+                    <javadocExecutable>/Library/Java/JavaVirtualMachines/jdk1.8.0_241.jdk/Contents/Home/bin/javadoc</javadocExecutable>
+                </configuration>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>

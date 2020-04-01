@@ -1,6 +1,6 @@
 package com.github.offercat.cache.inte;
 
-import com.github.offercat.cache.action.HashAction;
+import com.github.offercat.cache.action.MapAction;
 import com.github.offercat.cache.action.ListAction;
 import com.github.offercat.cache.action.SetAction;
 import com.github.offercat.cache.action.ZsetAction;
@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
  * @since 2020年03月14日 16:34:45
  */
 @NoArgsConstructor
-public abstract class ClusterCache extends AbstractCache implements HashAction, ListAction, SetAction, ZsetAction {
+public abstract class ClusterCache extends AbstractCache implements MapAction, ListAction, SetAction, ZsetAction {
 
     public ClusterCache(String name, ItemProperties itemProperties){
         super(name, itemProperties);

@@ -4,7 +4,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.offercat.cache.config.ItemProperties;
 import com.github.offercat.cache.config.MiddlewareCreator;
 import com.github.offercat.cache.extra.ExceptionUtil;
-import com.github.offercat.cache.extra.CacheObject;
+import com.github.offercat.cache.extra.CacheEntity;
 import com.github.offercat.cache.inte.LocalCache;
 import lombok.NoArgsConstructor;
 import org.springframework.util.CollectionUtils;
@@ -22,7 +22,6 @@ import java.util.Map;
  * @author 徐通 Tony Xu myimpte@163.com
  * @since 2020年03月14日 15:05:35
  */
-@SuppressWarnings("unchecked")
 @NoArgsConstructor
 public class CaffeineCache extends LocalCache {
 
@@ -48,8 +47,8 @@ public class CaffeineCache extends LocalCache {
 
     @Override
     public <T extends Serializable> T get(String key) {
-        CacheObject cacheObject = this.getCacheObject(key);
-        return cacheObject == null ? null : (T) cacheObject.getObject();
+        CacheEntity cacheEntity = this.getCacheEntity(key);
+        return cacheEntity == null ? null : this.getCacheEntityParser().toObject(cacheEntity);
     }
 
     @Override
@@ -60,9 +59,9 @@ public class CaffeineCache extends LocalCache {
         Map<String, Object> cacheResult = this.caffeine.getAllPresent(keys);
         Map<String, T> result = new HashMap<>(cacheResult.size(), 2);
         cacheResult.forEach((key, obj) -> {
-            if (obj instanceof CacheObject) {
-                CacheObject cacheObject = (CacheObject) obj;
-                result.put(key, (T) cacheObject.getObject());
+            if (obj instanceof CacheEntity) {
+                CacheEntity cacheEntity = (CacheEntity) obj;
+                result.put(key, this.getCacheEntityParser().toObject(cacheEntity));
             }
         });
         return result;
@@ -73,12 +72,8 @@ public class CaffeineCache extends LocalCache {
         if (key == null || value == null) {
             return;
         }
-        CacheObject cacheObject = new CacheObject(
-                ((Object) value).getClass().getName(),
-                value,
-                System.currentTimeMillis()
-        );
-        this.setCacheObject(key, cacheObject);
+        CacheEntity cacheEntity = this.getCacheEntityParser().toCacheEntity(value, System.currentTimeMillis());
+        this.setCacheEntity(key, cacheEntity);
     }
 
     @Override
@@ -87,16 +82,8 @@ public class CaffeineCache extends LocalCache {
             return;
         }
         long time = System.currentTimeMillis();
-        Map<String, CacheObject> objectMap = new HashMap<>(keyObjects.size(), 2);
-        keyObjects.forEach((key, value) -> {
-            CacheObject cacheObject = new CacheObject(
-                    ((Object) value).getClass().getName(),
-                    value,
-                    time
-            );
-            objectMap.put(key, cacheObject);
-        });
-        this.setMulCacheObject(objectMap);
+        Map<String, CacheEntity> objectMap = this.getCacheEntityParser().toCacheEntityMap(keyObjects, time);
+        this.setMulCacheEntity(objectMap);
     }
 
     @Override
@@ -116,15 +103,15 @@ public class CaffeineCache extends LocalCache {
     }
 
     @Override
-    public void setCacheObject(String key, CacheObject cacheObject) {
-        if (StringUtils.isEmpty(key) || cacheObject == null) {
+    public void setCacheEntity(String key, CacheEntity cacheEntity) {
+        if (StringUtils.isEmpty(key) || cacheEntity == null) {
             return;
         }
-        this.caffeine.put(key, cacheObject);
+        this.caffeine.put(key, cacheEntity);
     }
 
     @Override
-    public void setMulCacheObject(Map<String, CacheObject> keyObjects) {
+    public void setMulCacheEntity(Map<String, CacheEntity> keyObjects) {
         if (CollectionUtils.isEmpty(keyObjects)) {
             return;
         }
@@ -132,41 +119,25 @@ public class CaffeineCache extends LocalCache {
     }
 
     @Override
-    public CacheObject getCacheObject(String key) {
+    public CacheEntity getCacheEntity(String key) {
         if (key == null) {
             return null;
         }
-        return (CacheObject) caffeine.getIfPresent(key);
+        return (CacheEntity) caffeine.getIfPresent(key);
     }
 
     @Override
-    public Map<String, CacheObject> getMulCacheObject(List<String> keys) {
+    public Map<String, CacheEntity> getMulCacheEntity(List<String> keys) {
         if (CollectionUtils.isEmpty(keys)) {
             return new HashMap<>(0);
         }
         Map<String, Object> cacheResult = this.caffeine.getAllPresent(keys);
-        Map<String, CacheObject> result = new HashMap<>(cacheResult.size(), 2);
+        Map<String, CacheEntity> result = new HashMap<>(cacheResult.size(), 2);
         cacheResult.forEach((key, obj) -> {
-            if (obj instanceof CacheObject) {
-                result.put(key, (CacheObject) obj);
+            if (obj instanceof CacheEntity) {
+                result.put(key, (CacheEntity) obj);
             }
         });
         return result;
-    }
-
-    @Override
-    public <T extends Serializable> T transferToObject(CacheObject cacheObject) {
-        if (cacheObject == null || cacheObject.getObject() == null) {
-            return null;
-        }
-        return (T) cacheObject.getObject();
-    }
-
-    @Override
-    public <T extends Serializable> CacheObject transferToCacheObject(T obj, long time) {
-        if (obj == null) {
-            return null;
-        }
-        return new CacheObject(obj.getClass().getName(), obj, time);
     }
 }

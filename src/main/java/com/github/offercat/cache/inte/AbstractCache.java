@@ -4,8 +4,10 @@ import com.github.offercat.cache.action.BaseAction;
 import com.github.offercat.cache.broadcast.Broadcast;
 import com.github.offercat.cache.broadcast.WithBroadcast;
 import com.github.offercat.cache.config.ItemProperties;
-import com.github.offercat.cache.extra.CacheObject;
+import com.github.offercat.cache.extra.CacheEntity;
+import com.github.offercat.cache.extra.CacheEntityParser;
 import com.github.offercat.cache.extra.ExceptionUtil;
+import com.github.offercat.cache.extra.UnSerializeEntityParser;
 import com.github.offercat.cache.proxy.UnIntercept;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,6 +51,12 @@ public abstract class AbstractCache implements BaseAction, WithBroadcast {
     private AbstractCache prev;
 
     /**
+     * 缓存实体解析器
+     * Cache Entity parser
+     */
+    private CacheEntityParser cacheEntityParser;
+
+    /**
      * 本缓存的参数配置
      * Parameter configuration of this cache
      */
@@ -60,6 +68,7 @@ public abstract class AbstractCache implements BaseAction, WithBroadcast {
         this.order = 1;
         this.name = name;
         this.itemProperties = itemProperties;
+        this.cacheEntityParser = new UnSerializeEntityParser();
         if (itemProperties.isEnable()) {
             this.initMiddleware(itemProperties);
         }
@@ -114,16 +123,26 @@ public abstract class AbstractCache implements BaseAction, WithBroadcast {
         return itemProperties;
     }
 
+    @UnIntercept
+    public CacheEntityParser getCacheEntityParser() {
+        return cacheEntityParser;
+    }
+
+    @UnIntercept
+    public void setCacheEntityParser(CacheEntityParser cacheEntityParser) {
+        this.cacheEntityParser = cacheEntityParser;
+    }
+
     @Override
     @Broadcast(type = Broadcast.OperationType.SET_ONE)
-    public void setWithBroadcast(String key, CacheObject cacheObject) {
-        this.setCacheObject(key, cacheObject);
+    public void setWithBroadcast(String key, CacheEntity cacheEntity) {
+        this.setCacheEntity(key, cacheEntity);
     }
 
     @Override
     @Broadcast(type = Broadcast.OperationType.SET_MUL)
-    public void setMulWithBroadcast(Map<String, CacheObject> keyObjects) {
-        this.setMulCacheObject(keyObjects);
+    public void setMulWithBroadcast(Map<String, CacheEntity> keyObjects) {
+        this.setMulCacheEntity(keyObjects);
     }
 
     @Override

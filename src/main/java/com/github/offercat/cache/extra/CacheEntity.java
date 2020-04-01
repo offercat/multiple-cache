@@ -15,7 +15,7 @@ import java.io.Serializable;
  */
 @Data
 @AllArgsConstructor
-public class CacheObject implements Serializable {
+public class CacheEntity implements Serializable {
 
     private static final long serialVersionUID = 721720413226228880L;
 
@@ -35,5 +35,5 @@ public class CacheObject implements Serializable {
      * 对象写入缓存的时间
      * Time to write to cache
      */
-    private long setTime;
+    private long time;
 }

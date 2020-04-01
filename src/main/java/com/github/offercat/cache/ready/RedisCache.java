@@ -3,7 +3,7 @@ package com.github.offercat.cache.ready;
 import com.github.offercat.cache.config.ItemProperties;
 import com.github.offercat.cache.config.MiddlewareCreator;
 import com.github.offercat.cache.extra.ExceptionUtil;
-import com.github.offercat.cache.extra.CacheObject;
+import com.github.offercat.cache.extra.CacheEntity;
 import com.github.offercat.cache.inte.ClusterCache;
 import com.github.offercat.cache.inte.Serializer;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -62,11 +62,11 @@ public class RedisCache extends ClusterCache {
 
     @Override
     public <T extends Serializable> T get(String key) {
-        CacheObject cacheObject = this.getCacheObject(key);
-        if (cacheObject == null) {
+        CacheEntity cacheEntity = this.getCacheEntity(key);
+        if (cacheEntity == null) {
             return null;
         }
-        return this.transferToObject(cacheObject);
+        return this.getCacheEntityParser().toObject(cacheEntity);
     }
 
     @Override
@@ -79,15 +79,15 @@ public class RedisCache extends ClusterCache {
         Class<T> type = null;
         for (int i = 0; i < strObjList.size(); i++) {
             if (strObjList.get(i) != null) {
-                CacheObject cacheObject = this.serializer.deserializeFromString(strObjList.get(i), CacheObject.class);
+                CacheEntity cacheEntity = this.serializer.deserializeFromString(strObjList.get(i), CacheEntity.class);
                 if (type == null) {
                     try {
-                        type = (Class<T>) Class.forName(cacheObject.getTypeStr());
+                        type = (Class<T>) Class.forName(cacheEntity.getTypeStr());
                     } catch (ClassNotFoundException e) {
                         throw new RuntimeException(e);
                     }
                 }
-                result.put(keys.get(i), this.serializer.deserializeFromString((String) cacheObject.getObject(), type));
+                result.put(keys.get(i), this.serializer.deserializeFromString((String) cacheEntity.getObject(), type));
             }
         }
         return result;
@@ -98,9 +98,9 @@ public class RedisCache extends ClusterCache {
         if (StringUtils.isEmpty(key) || value == null) {
             return;
         }
-        String strCacheObject = this.serializer.serializeToString(value);
-        CacheObject cacheObject = this.transferToCacheObject(strCacheObject, System.currentTimeMillis());
-        this.setCacheObject(key, cacheObject);
+        String strCacheEntity = this.serializer.serializeToString(value);
+        CacheEntity cacheEntity = this.getCacheEntityParser().toCacheEntity(strCacheEntity, System.currentTimeMillis());
+        this.setCacheEntity(key, cacheEntity);
     }
 
     @Override
@@ -114,13 +114,12 @@ public class RedisCache extends ClusterCache {
             if (StringUtils.isEmpty(entry.getKey()) || entry.getValue() == null) {
                 continue;
             }
-            CacheObject cacheObject = new CacheObject(
-                    ((Object) entry.getValue()).getClass().getName(),
+            CacheEntity cacheEntity = this.getCacheEntityParser().toCacheEntity(
                     this.serializer.serializeToString(entry.getValue()),
                     System.currentTimeMillis()
             );
             keyValues[i] = entry.getKey();
-            keyValues[i + 1] = this.serializer.serializeToString(cacheObject);
+            keyValues[i + 1] = this.serializer.serializeToString(cacheEntity);
             i = i + 2;
         }
         jedisPool.getResource().mset(keyValues);
@@ -145,22 +144,22 @@ public class RedisCache extends ClusterCache {
     }
 
     @Override
-    public void setCacheObject(String key, CacheObject cacheObject) {
-        if (StringUtils.isEmpty(key) || cacheObject == null) {
+    public void setCacheEntity(String key, CacheEntity cacheEntity) {
+        if (StringUtils.isEmpty(key) || cacheEntity == null) {
             return;
         }
-        String cacheObjectStr = this.serializer.serializeToString(cacheObject);
+        String cacheObjectStr = this.serializer.serializeToString(cacheEntity);
         jedisPool.getResource().setex(key, this.getTimeUnitToMillisecond(), cacheObjectStr);
     }
 
     @Override
-    public void setMulCacheObject(Map<String, CacheObject> keyObjects) {
+    public void setMulCacheEntity(Map<String, CacheEntity> keyObjects) {
         if (CollectionUtils.isEmpty(keyObjects)) {
             return;
         }
         String[] keyValues = new String[keyObjects.size() * 2];
         int i = 0;
-        for (Map.Entry<String, CacheObject> entry : keyObjects.entrySet()) {
+        for (Map.Entry<String, CacheEntity> entry : keyObjects.entrySet()) {
             if (StringUtils.isEmpty(entry.getKey()) || entry.getValue() == null) {
                 continue;
             }
@@ -174,7 +173,7 @@ public class RedisCache extends ClusterCache {
     }
 
     @Override
-    public CacheObject getCacheObject(String key) {
+    public CacheEntity getCacheEntity(String key) {
         if (StringUtils.isEmpty(key)) {
             return null;
         }
@@ -182,47 +181,23 @@ public class RedisCache extends ClusterCache {
         if (StringUtils.isEmpty(cacheObjectStr)) {
             return null;
         }
-        return this.serializer.deserializeFromString(cacheObjectStr, CacheObject.class);
+        return this.serializer.deserializeFromString(cacheObjectStr, CacheEntity.class);
     }
 
     @Override
-    public Map<String, CacheObject> getMulCacheObject(List<String> keys) {
+    public Map<String, CacheEntity> getMulCacheEntity(List<String> keys) {
         if (CollectionUtils.isEmpty(keys)) {
             return Collections.emptyMap();
         }
-        Map<String, CacheObject> cacheObjectMap = new HashMap<>(keys.size(), 2);
+        Map<String, CacheEntity> cacheObjectMap = new HashMap<>(keys.size(), 2);
         List<String> strObjList = jedisPool.getResource().mget(keys.toArray(new String[0]));
         for (int i = 0; i < strObjList.size(); i++) {
             if (strObjList.get(i) != null) {
-                CacheObject cacheObject = this.serializer.deserializeFromString(strObjList.get(i), CacheObject.class);
-                cacheObjectMap.put(keys.get(i), cacheObject);
+                CacheEntity cacheEntity = this.serializer.deserializeFromString(strObjList.get(i), CacheEntity.class);
+                cacheObjectMap.put(keys.get(i), cacheEntity);
             }
         }
         return cacheObjectMap;
-    }
-
-    @Override
-    public <T extends Serializable> T transferToObject(CacheObject cacheObject) {
-        if (cacheObject == null || cacheObject.getObject() == null || StringUtils.isEmpty(cacheObject.getTypeStr())) {
-            return null;
-        }
-        String objStr = (String) cacheObject.getObject();
-        Class<T> type;
-        try {
-            type = (Class<T>) Class.forName(cacheObject.getTypeStr());
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-            return null;
-        }
-        return serializer.deserializeFromString(objStr, type);
-    }
-
-    @Override
-    public <T extends Serializable> CacheObject transferToCacheObject(T obj, long time) {
-        if (obj == null) {
-            return null;
-        }
-        return new CacheObject(obj.getClass().getName(), serializer.serializeToString(obj), time);
     }
 
     private int getTimeUnitToMillisecond() {
@@ -245,5 +220,40 @@ public class RedisCache extends ClusterCache {
             throw new InvalidParameterException("Redis cache expiration time exceeds the maximum range!");
         }
         return (int) result;
+    }
+
+    @Override
+    public <T> Map<String, T> getMap(String key) {
+        if (StringUtils.isEmpty(key)) {
+            return null;
+        }
+        Map<String, String> strMap =  jedisPool.getResource().hgetAll(key);
+
+        return null;
+    }
+
+    @Override
+    public <T> void setMap(String key, Map<String, T> map) {
+
+    }
+
+    @Override
+    public <T> T getMapField(String key, String field) {
+        return null;
+    }
+
+    @Override
+    public <T> void setMapField(String key, String field, T value) {
+
+    }
+
+    @Override
+    public void delMapField(String key, String field) {
+
+    }
+
+    @Override
+    public boolean mapExistField(String key, String field) {
+        return false;
     }
 }

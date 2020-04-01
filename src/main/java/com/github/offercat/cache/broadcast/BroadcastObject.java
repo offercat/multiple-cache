@@ -1,6 +1,6 @@
 package com.github.offercat.cache.broadcast;
 
-import com.github.offercat.cache.extra.CacheObject;
+import com.github.offercat.cache.extra.CacheEntity;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -29,5 +29,5 @@ public class BroadcastObject implements Serializable {
      * 内置缓存对象
      * Built-in cache object
      */
-    private CacheObject cacheObject;
+    private CacheEntity cacheEntity;
 }

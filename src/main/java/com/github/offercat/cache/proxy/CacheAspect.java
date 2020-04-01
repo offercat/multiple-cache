@@ -5,7 +5,7 @@ import com.github.offercat.cache.broadcast.BroadcastMessage;
 import com.github.offercat.cache.broadcast.BroadcastObject;
 import com.github.offercat.cache.broadcast.BroadcastService;
 import com.github.offercat.cache.config.CacheProperties;
-import com.github.offercat.cache.extra.CacheObject;
+import com.github.offercat.cache.extra.CacheEntity;
 import com.github.offercat.cache.extra.ThrowFunction;
 import com.github.offercat.cache.inte.AbstractCache;
 import lombok.AllArgsConstructor;
@@ -60,8 +60,8 @@ public class CacheAspect extends AbstractAop {
     }
 
     private void setOne(ProxyPoint point) {
-        CacheObject cacheObject = (CacheObject) point.getArgs()[1];
-        BroadcastObject broadcastObject = new BroadcastObject((String) point.getArgs()[0], cacheObject);
+        CacheEntity cacheEntity = (CacheEntity) point.getArgs()[1];
+        BroadcastObject broadcastObject = new BroadcastObject((String) point.getArgs()[0], cacheEntity);
         broadcastService.enqueue(new BroadcastMessage(
                 THIS_SERVER_FLAG,
                 target.getName(),
@@ -71,7 +71,7 @@ public class CacheAspect extends AbstractAop {
     }
 
     private void setMul(ProxyPoint point) {
-        Map<String, CacheObject> cacheObjectMap = (Map<String, CacheObject>) point.getArgs()[0];
+        Map<String, CacheEntity> cacheObjectMap = (Map<String, CacheEntity>) point.getArgs()[0];
         List<BroadcastObject> broadcastObjectList = new ArrayList<>(cacheObjectMap.size());
         cacheObjectMap.forEach((key, cacheObject) ->
                 broadcastObjectList.add(new BroadcastObject(key, cacheObject))

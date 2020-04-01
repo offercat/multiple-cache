@@ -1,7 +1,7 @@
 package com.github.offercat.cache.ready;
 
 import com.github.offercat.cache.config.ItemProperties;
-import com.github.offercat.cache.extra.CacheObject;
+import com.github.offercat.cache.extra.CacheEntity;
 import com.github.offercat.cache.inte.DirectCache;
 import com.github.offercat.cache.inte.Serializer;
 import lombok.NoArgsConstructor;
@@ -65,32 +65,22 @@ public class EhDirectCache extends DirectCache {
     }
 
     @Override
-    public void setCacheObject(String key, CacheObject cacheObject) {
+    public void setCacheEntity(String key, CacheEntity cacheEntity) {
 
     }
 
     @Override
-    public void setMulCacheObject(Map<String, CacheObject> keyObjects) {
+    public void setMulCacheEntity(Map<String, CacheEntity> keyObjects) {
 
     }
 
     @Override
-    public CacheObject getCacheObject(String key) {
+    public CacheEntity getCacheEntity(String key) {
         return null;
     }
 
     @Override
-    public Map<String, CacheObject> getMulCacheObject(List<String> keys) {
-        return null;
-    }
-
-    @Override
-    public <T extends Serializable> T transferToObject(CacheObject cacheObject) {
-        return null;
-    }
-
-    @Override
-    public <T extends Serializable> CacheObject transferToCacheObject(T obj, long time) {
+    public Map<String, CacheEntity> getMulCacheEntity(List<String> keys) {
         return null;
     }
 }

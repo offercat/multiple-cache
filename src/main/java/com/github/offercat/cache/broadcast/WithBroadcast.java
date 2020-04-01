@@ -1,6 +1,6 @@
 package com.github.offercat.cache.broadcast;
 
-import com.github.offercat.cache.extra.CacheObject;
+import com.github.offercat.cache.extra.CacheEntity;
 
 import java.util.List;
 import java.util.Map;
@@ -27,9 +27,9 @@ public interface WithBroadcast {
      * Save built-in cache object and broadcast
      *
      * @param key         cache key
-     * @param cacheObject 缓存对象
+     * @param cacheEntity 缓存对象
      */
-    void setWithBroadcast(String key, CacheObject cacheObject);
+    void setWithBroadcast(String key, CacheEntity cacheEntity);
 
     /**
      * 批量存储内置缓存对象
@@ -37,7 +37,7 @@ public interface WithBroadcast {
      *
      * @param keyObjects key-cacheObject mapping
      */
-    void setMulWithBroadcast(Map<String, CacheObject> keyObjects);
+    void setMulWithBroadcast(Map<String, CacheEntity> keyObjects);
 
     /**
      * 删除对象

@@ -123,7 +123,7 @@ class MultipleCacheTest {
 
 
     @Test
-    @DisplayName("回调函数拿到3个 | 本地2个 集群1个 | otherIds = [111] 各一个 | 本地3个")
+    @DisplayName("回调函数拿到3个 | 本地2个 集群1个 | otherIds = [XXX] 各一个 | 本地3个")
     void getMul2() {
         String id1 = UUID.randomUUID().toString();
         String id2 = UUID.randomUUID().toString();

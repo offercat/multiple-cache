@@ -2,7 +2,7 @@ package com.github.offercat.cache.broadcast;
 
 import com.github.offercat.cache.config.CacheProperties;
 import com.github.offercat.cache.config.MiddlewareCreator;
-import com.github.offercat.cache.extra.CacheObject;
+import com.github.offercat.cache.extra.CacheEntity;
 import com.github.offercat.cache.extra.ExceptionUtil;
 import com.github.offercat.cache.inte.AbstractCache;
 import com.github.offercat.cache.inte.Serializer;
@@ -76,24 +76,24 @@ public class BroadcastServiceImpl implements BroadcastService {
             return;
         }
 
-        Map<String, CacheObject> cacheMap = cache.getMulCacheObject(keys);
+        Map<String, CacheEntity> cacheMap = cache.getMulCacheEntity(keys);
         broadcastObjects.forEach(broadcastObject -> {
-            if (broadcastObject.getCacheObject() == null) {
+            if (broadcastObject.getCacheEntity() == null) {
                 return;
             }
-            CacheObject cacheObject = cacheMap.get(broadcastObject.getKey());
-            if (cacheObject != null && Objects.equals(cacheObject.getObject(), broadcastObject.getCacheObject().getObject())) {
+            CacheEntity cacheEntity = cacheMap.get(broadcastObject.getKey());
+            if (cacheEntity != null && Objects.equals(cacheEntity.getObject(), broadcastObject.getCacheEntity().getObject())) {
                 if (properties.isLogEnable()) {
                     log.info("--- cache sync ---  {} cache, consistent content, no need to replace key = {}",
                             cache.getName(), broadcastObject.getKey());
                 }
                 return;
             }
-            if (cacheObject == null || cacheObject.getSetTime() < broadcastObject.getCacheObject().getSetTime()) {
+            if (cacheEntity == null || cacheEntity.getTime() < broadcastObject.getCacheEntity().getTime()) {
                 if (properties.isLogEnable()) {
                     log.info("--- cache sync ---  {} cache, update object key = {}", cache.getName(), broadcastObject.getKey());
                 }
-                cache.setCacheObject(broadcastObject.getKey(), broadcastObject.getCacheObject());
+                cache.setCacheEntity(broadcastObject.getKey(), broadcastObject.getCacheEntity());
             }
             if (properties.isLogEnable()) {
                 log.info("--- cache sync ---  {} cache, received timestamp is old, no need to replace key = {}",

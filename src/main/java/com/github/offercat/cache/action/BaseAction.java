@@ -1,7 +1,5 @@
 package com.github.offercat.cache.action;
 
-import com.github.offercat.cache.extra.CacheObject;
-
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
@@ -13,7 +11,7 @@ import java.util.Map;
  * @author 徐通 Tony Xu myimpte@163.com
  * @since 2019年12月08日 2:57
  */
-public interface BaseAction {
+public interface BaseAction extends CacheEntityAction {
 
     /**
      * 获取对象
@@ -65,56 +63,4 @@ public interface BaseAction {
      * @param keys cache key list
      */
     void delMul(List<String> keys);
-
-    /**
-     * 存储内置缓存对象
-     * Save built-in cache object
-     *
-     * @param key         cache key
-     * @param cacheObject 缓存对象
-     */
-    void setCacheObject(String key, CacheObject cacheObject);
-
-    /**
-     * 批量存储内置缓存对象
-     * Batch save built-in cache objects
-     *
-     * @param keyObjects key-cacheObject mapping
-     */
-    void setMulCacheObject(Map<String, CacheObject> keyObjects);
-
-    /**
-     * 获取内置缓存对象
-     * Get built-in cache object
-     *
-     * @param key cache key
-     * @return built-in cache object
-     */
-    CacheObject getCacheObject(String key);
-
-    /**
-     * 批量获取内置缓存对象
-     * Get multiple built-in cache objects
-     *
-     * @param keys cache key list
-     * @return key-cacheObject mapping
-     */
-    Map<String, CacheObject> getMulCacheObject(List<String> keys);
-
-    /**
-     *
-     * @param cacheObject
-     * @param <T>
-     * @return
-     */
-    <T extends Serializable> T transferToObject(CacheObject cacheObject);
-
-    /**
-     *
-     * @param obj
-     * @param time
-     * @param <T>
-     * @return
-     */
-    <T extends Serializable> CacheObject transferToCacheObject(T obj, long time);
 }
